@@ -3,6 +3,7 @@
 Очередь задач и пайплайны подключаются в M2+ согласно 01_DOCS/TZ.md.
 """
 
+import asyncio
 import logging
 import os
 import platform
@@ -10,13 +11,20 @@ import threading
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import __version__, config, db, log
+from . import __version__, config, db, gpu, log
 from .errors import install_handlers
 from .media import ffmpeg
-from .routers import library, projects, settings
+from .routers import library, processing, projects, settings
+
+# Регистрация job-хендлеров (side effect декораторов @register).
+from .analysis import run as _analysis_jobs  # noqa: F401
+from .stems import separator as _stems_jobs  # noqa: F401
+from .jobs.progress import hub
+from .jobs.runner import runner
+from .jobs import queue as jobs_queue
 
 _started_at = time.monotonic()
 
@@ -26,14 +34,23 @@ async def lifespan(_app: FastAPI):
     config.ensure_dirs()
     log.setup()
     db.init_db()
+    # Веса torch-моделей (demucs и др.) живут в нашем хранилище.
+    os.environ.setdefault("TORCH_HOME", str(config.data_dir() / "models"))
     # tmp чистится при старте: там только незавершённые операции прошлой сессии
     for leftover in config.tmp_dir().glob("*"):
         try:
             leftover.unlink()
         except OSError:
             pass
-    logging.getLogger("mixpilot").info("worker started", extra={"ctx": {"data_dir": str(config.data_dir())}})
+    resumed = jobs_queue.reset_running_to_queued()
+    hub.bind_loop(asyncio.get_running_loop())
+    runner.start()
+    logging.getLogger("mixpilot").info(
+        "worker started",
+        extra={"ctx": {"data_dir": str(config.data_dir()), "resumed_jobs": resumed}},
+    )
     yield
+    await runner.stop()
 
 
 app = FastAPI(title="MixPilot Worker", version=__version__, lifespan=lifespan)
@@ -51,6 +68,17 @@ install_handlers(app)
 app.include_router(library.router)
 app.include_router(projects.router)
 app.include_router(settings.router)
+app.include_router(processing.router)
+
+
+@app.websocket("/ws")
+async def ws_endpoint(ws: WebSocket) -> None:
+    await hub.connect(ws)
+    try:
+        while True:
+            await ws.receive_text()  # ping-и клиента; сервер только шлёт события
+    except WebSocketDisconnect:
+        hub.disconnect(ws)
 
 
 @app.get("/health")
@@ -66,8 +94,8 @@ def meta() -> dict:
         "python": platform.python_version(),
         "pid": os.getpid(),
         "uptime_s": round(time.monotonic() - _started_at, 1),
-        # GPU-детект появится в M2 вместе с torch — до этого честный null.
-        "gpu": None,
+        # Имя GPU появляется после первой тяжёлой задачи (torch лениво).
+        "gpu": gpu.gpu_name(),
         "ffmpeg": ffmpeg.available(),
         "data_dir": str(config.data_dir()),
     }

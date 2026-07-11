@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { setWorkerPort } from '../api/client';
 import type { WorkerMeta } from '../types/mixpilot';
+import { useJobs } from './jobs';
 
 export type EngineState =
   | { kind: 'browser' } // vite в обычном браузере: без Electron-моста
@@ -30,6 +31,7 @@ export const useEngine = create<EngineStore>((set, get) => ({
         const info = await bridge.workerInfo();
         if (info.status === 'online' && info.meta && info.port) {
           setWorkerPort(info.port);
+          useJobs.getState().connect(info.port);
           set({ state: { kind: 'online', port: info.port, meta: info.meta } });
         } else if (info.status === 'failed') {
           set({ state: { kind: 'offline' } });

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Project, RemixParams, Track } from '../api/types';
 import { api } from '../api/client';
 import { DropZone } from '../components/DropZone';
+import { TrackPrep } from '../components/TrackPrep';
 import { TrackRow } from '../components/TrackRow';
 import { useEngine } from '../state/engine';
 import { useLibrary } from '../state/library';
@@ -181,9 +182,10 @@ export function RemixMasterScreen({ projectId, initialTrackId }: { projectId?: s
       <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <h2 className="h2">Песня</h2>
         {state.track ? (
-          <div className="card" style={{ padding: 8 }}>
+          <div className="card" style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <TrackRow track={state.track} showRemix={false} />
-            <div style={{ padding: '4px 14px' }}>
+            <div style={{ padding: '0 14px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <TrackPrep key={state.track.id} trackId={state.track.id} />
               <DropZone compact onPaths={(p) => void onDropTrack(p)}>
                 <span className="small">Заменить песню — перетащите или нажмите</span>
               </DropZone>
