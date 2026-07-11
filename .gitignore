@@ -1,0 +1,17 @@
+# Node / UI
+node_modules/
+dist/
+release/
+.vite/
+
+# Python worker
+worker/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Разное
+*.log
+.env
+.DS_Store
+Thumbs.db

@@ -1,0 +1,39 @@
+{
+  "name": "mixpilot",
+  "productName": "MixPilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ремиксы, соединение песен и каверы своим голосом — локально на вашем ПК",
+  "author": "artem",
+  "license": "UNLICENSED",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k -n ui,app \"npm:ui:dev\" \"npm:app:dev\"",
+    "ui:dev": "vite --port 3520 --strictPort",
+    "app:dev": "wait-on tcp:127.0.0.1:3520 && electron . --dev",
+    "ui:build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "electron . --smoke-test"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "electron": "^37.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8",
+    "wait-on": "^8.0.1"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.21.5": true,
+    "electron@37.10.3": true
+  }
+}
