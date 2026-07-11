@@ -1,21 +1,56 @@
-"""Точка входа worker: /health, /meta, /shutdown.
+"""Точка входа worker: системные эндпоинты + роутеры медиабазы (M1).
 
-Модули пайплайнов (media, analysis, stems, …) подключаются в M1+
-согласно 01_DOCS/TZ.md проекта PRJ-2026-005.
+Очередь задач и пайплайны подключаются в M2+ согласно 01_DOCS/TZ.md.
 """
 
+import logging
 import os
 import platform
 import threading
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from . import __version__
-
-app = FastAPI(title="MixPilot Worker", version=__version__)
+from . import __version__, config, db, log
+from .errors import install_handlers
+from .media import ffmpeg
+from .routers import library, projects, settings
 
 _started_at = time.monotonic()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    config.ensure_dirs()
+    log.setup()
+    db.init_db()
+    # tmp чистится при старте: там только незавершённые операции прошлой сессии
+    for leftover in config.tmp_dir().glob("*"):
+        try:
+            leftover.unlink()
+        except OSError:
+            pass
+    logging.getLogger("mixpilot").info("worker started", extra={"ctx": {"data_dir": str(config.data_dir())}})
+    yield
+
+
+app = FastAPI(title="MixPilot Worker", version=__version__, lifespan=lifespan)
+
+# Worker слушает только 127.0.0.1; origin'ы renderer'а — vite (dev) и file:// (prod, Origin: null).
+# Токен-авторизация появится вместе с SaaS-режимом.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+install_handlers(app)
+app.include_router(library.router)
+app.include_router(projects.router)
+app.include_router(settings.router)
 
 
 @app.get("/health")
@@ -33,6 +68,8 @@ def meta() -> dict:
         "uptime_s": round(time.monotonic() - _started_at, 1),
         # GPU-детект появится в M2 вместе с torch — до этого честный null.
         "gpu": None,
+        "ffmpeg": ffmpeg.available(),
+        "data_dir": str(config.data_dir()),
     }
 
 

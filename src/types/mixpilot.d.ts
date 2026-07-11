@@ -6,6 +6,8 @@ export interface WorkerMeta {
   pid: number;
   uptime_s: number;
   gpu: string | null;
+  ffmpeg?: boolean;
+  data_dir?: string;
 }
 
 export interface WorkerInfo {
@@ -19,6 +21,9 @@ declare global {
     /** Отсутствует, когда UI открыт в обычном браузере (vite dev без Electron). */
     mixpilot?: {
       workerInfo(): Promise<WorkerInfo>;
+      pickFiles(): Promise<string[]>;
+      showInFolder(targetPath: string): Promise<void>;
+      getPathForFile(file: File): string;
     };
   }
 }

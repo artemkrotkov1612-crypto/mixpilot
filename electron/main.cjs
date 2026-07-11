@@ -1,8 +1,13 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('node:path');
 const { WorkerManager } = require('./workerManager.cjs');
+const { registerMediaScheme, installMediaProtocol } = require('./protocol.cjs');
+
+const AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'aiff', 'aif'];
+
+registerMediaScheme(); // строго до app.whenReady()
 
 const IS_SMOKE = process.argv.includes('--smoke-test');
 const IS_DEV = process.argv.includes('--dev');
@@ -68,11 +73,25 @@ if (!IS_SMOKE && !app.requestSingleInstanceLock()) {
 
   ipcMain.handle('worker:info', () => wm.info());
 
+  ipcMain.handle('dialog:pickFiles', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Выберите музыку',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Аудио', extensions: AUDIO_EXTENSIONS }],
+    });
+    return result.canceled ? [] : result.filePaths;
+  });
+
+  ipcMain.handle('shell:showInFolder', (_event, target) => {
+    if (typeof target === 'string' && target) shell.showItemInFolder(path.normalize(target));
+  });
+
   app.whenReady().then(async () => {
     if (IS_SMOKE) {
       await runSmokeTest();
       return;
     }
+    installMediaProtocol();
     createWindow();
     try {
       await wm.start();
