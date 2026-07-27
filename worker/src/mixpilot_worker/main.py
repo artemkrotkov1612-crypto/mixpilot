@@ -24,6 +24,7 @@ from .analysis import run as _analysis_jobs  # noqa: F401
 from .stems import separator as _stems_jobs  # noqa: F401
 from .generate import pipeline as _generate_jobs  # noqa: F401
 from .generate import edit as _edit_jobs  # noqa: F401
+from .merge import run as _merge_jobs  # noqa: F401
 from .jobs.progress import hub
 from .jobs.runner import runner
 from .jobs import queue as jobs_queue

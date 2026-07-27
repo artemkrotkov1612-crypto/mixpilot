@@ -36,6 +36,15 @@ export interface RemixParams {
   quality?: 'fast' | 'max';
 }
 
+export interface MergeParams {
+  strategy?: string;
+  vocal_from?: number;
+  music_from?: number;
+}
+
+/** Параметры любой генерации: ремикс или соединение песен. */
+export type GenerationParams = RemixParams & MergeParams;
+
 export interface ProjectTrack extends Track {
   role: 'source' | 'reference' | 'beat';
   position: number;

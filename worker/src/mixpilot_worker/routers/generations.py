@@ -47,6 +47,14 @@ def create_generation(body: GenerateBody) -> dict:
         if src is None:
             raise AppError("E_BAD_REQUEST", "сначала добавьте песню в проект", status=422)
 
+        source_count = conn.execute(
+            "SELECT COUNT(*) AS n FROM project_tracks WHERE project_id=? AND role='source'",
+            (body.project_id,),
+        ).fetchone()["n"]
+        if project["mode"] == "merge" and source_count < 2:
+            raise AppError("E_BAD_REQUEST", "нужно хотя бы две песни", status=422,
+                           message_ru="Добавьте хотя бы две песни")
+
         quality = body.request.get("quality", "fast")
         if quality not in ("fast", "max"):
             quality = "fast"
@@ -60,7 +68,8 @@ def create_generation(body: GenerateBody) -> dict:
         conn.execute("UPDATE projects SET status='processing', updated_at=? WHERE id=?",
                      (db.now_iso(), body.project_id))
 
-    job = queue.enqueue("generate", {"generation_id": generation_id},
+    kind = "merge" if project["mode"] == "merge" else "generate"
+    job = queue.enqueue(kind, {"generation_id": generation_id},
                         priority=queue.PRIORITY["generate"], gpu=True)
     return {"generation_id": generation_id, "job": job}
 

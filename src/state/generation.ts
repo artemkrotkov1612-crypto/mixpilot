@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { ApiError, api } from '../api/client';
-import type { Generation, Job, RemixParams } from '../api/types';
+import type { Generation, GenerationParams, Job } from '../api/types';
 import { toast } from './toasts';
 
 interface StartResponse {
@@ -13,7 +13,7 @@ interface GenerationState {
   /** id активной задачи: генерации или правки */
   jobId: string | null;
   loading: boolean;
-  start: (projectId: string, request: RemixParams) => Promise<string | null>;
+  start: (projectId: string, request: GenerationParams) => Promise<string | null>;
   load: (generationId: string) => Promise<void>;
   refresh: () => Promise<void>;
   /** Правка варианта чипами/операциями — возвращает id задачи. */

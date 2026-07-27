@@ -29,7 +29,7 @@ export function HomeScreen() {
           <div className="title">Сделать ремикс</div>
           <div className="muted small">Phonk, Bass Boosted, Slowed, Club, House — или скажите словами</div>
         </button>
-        <button className="mode-card" onClick={() => toast(SOON)}>
+        <button className="mode-card" onClick={() => go({ name: 'merge' })}>
           <span className="icon">🔗</span>
           <div className="title">Соединить песни</div>
           <div className="muted small">Mashup, плавные переходы, лучшие моменты нескольких треков</div>
@@ -49,9 +49,11 @@ export function HomeScreen() {
               <button
                 key={p.id}
                 className="recent-card"
-                onClick={() =>
-                  p.mode === 'remix' ? go({ name: 'remix', projectId: p.id }) : toast(SOON)
-                }
+                onClick={() => {
+                  if (p.mode === 'remix') go({ name: 'remix', projectId: p.id });
+                  else if (p.mode === 'merge') go({ name: 'merge', projectId: p.id });
+                  else toast(SOON);
+                }}
               >
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>{p.title}</div>
                 <div className="muted small">

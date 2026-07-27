@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { Toasts } from './components/Toasts';
 import { HomeScreen } from './screens/HomeScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
+import { MergeMasterScreen } from './screens/MergeMasterScreen';
 import { RemixMasterScreen } from './screens/RemixMasterScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -25,6 +26,8 @@ function CurrentScreen() {
           initialTrackId={screen.initialTrackId}
         />
       );
+    case 'merge':
+      return <MergeMasterScreen key={screen.projectId ?? 'new'} projectId={screen.projectId} />;
     case 'results':
       return <ResultsScreen key={screen.generationId} generationId={screen.generationId} />;
     case 'settings':

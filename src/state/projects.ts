@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api/client';
-import type { Project, ProjectMode, RemixParams } from '../api/types';
+import type { GenerationParams, Project, ProjectMode } from '../api/types';
 
 interface ProjectsState {
   recent: Project[];
@@ -41,7 +41,7 @@ export async function detachTrack(projectId: string, trackId: string): Promise<P
 
 export async function saveProject(
   projectId: string,
-  patch: { title?: string; params?: RemixParams },
+  patch: { title?: string; params?: GenerationParams },
 ): Promise<Project> {
   return api<Project>(`/projects/${projectId}`, { method: 'PATCH', json: patch });
 }
