@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
-import type { Settings, StorageInfo } from '../api/types';
+import type { CloudStatus, Settings, StorageInfo } from '../api/types';
 import { useEngine } from '../state/engine';
 import { toast } from '../state/toasts';
 
@@ -8,11 +8,26 @@ export function SettingsScreen() {
   const engine = useEngine((s) => s.state);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [storage, setStorage] = useState<StorageInfo | null>(null);
+  const [cloud, setCloud] = useState<CloudStatus | null>(null);
 
   const refresh = async () => {
-    const [s, st] = await Promise.all([api<Settings>('/settings'), api<StorageInfo>('/storage')]);
+    const [s, st, cl] = await Promise.all([
+      api<Settings>('/settings'),
+      api<StorageInfo>('/storage'),
+      api<CloudStatus>('/cloud'),
+    ]);
     setSettings(s);
     setStorage(st);
+    setCloud(cl);
+  };
+
+  const toggleCloud = async () => {
+    const updated = await api<Settings>('/settings', {
+      method: 'PUT',
+      json: { key: 'cloud_enabled', value: !(settings?.cloud_enabled ?? true) },
+    });
+    setSettings(updated);
+    setCloud(await api<CloudStatus>('/cloud'));
   };
 
   useEffect(() => {
@@ -45,6 +60,29 @@ export function SettingsScreen() {
           </button>
         </div>
         <p className="muted small">«Быстро» — лёгкие модели и короткое ожидание. «Максимум» — лучший звук, дольше.</p>
+      </div>
+
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <h2 className="h2">Понимание текста ☁️</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button className={`chip ${settings?.cloud_enabled ? 'active' : ''}`} onClick={() => void toggleCloud()}>
+            {settings?.cloud_enabled ? 'Включено' : 'Выключено'}
+          </button>
+          {cloud && (
+            <span className="small" style={{ color: cloud.ready ? 'var(--ok)' : 'var(--warn)' }}>
+              {cloud.ready
+                ? `Ключ подключён (${cloud.key_hint})`
+                : cloud.has_key
+                  ? 'Ключ есть, но понимание текста выключено'
+                  : 'Ключ не задан — работают карточки и кнопки'}
+            </span>
+          )}
+        </div>
+        <p className="muted small">
+          Позволяет писать пожелания обычными словами. В облако уходит только текст: аудио, голос и файлы
+          никогда не покидают ваш компьютер. Карточки и кнопки работают без интернета.
+        </p>
+        {cloud?.has_key && <p className="muted small">Провайдер: {cloud.base_url}</p>}
       </div>
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

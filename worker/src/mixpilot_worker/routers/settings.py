@@ -62,6 +62,14 @@ def _dir_size(path: Path) -> int:
     return total
 
 
+@router.get("/cloud")
+def cloud() -> dict:
+    """Готовность облачного понимания текста (ключ наружу не отдаём)."""
+    from ..llm.provider import cloud_status
+
+    return cloud_status()
+
+
 @router.get("/storage")
 def storage() -> dict:
     base = config.data_dir()

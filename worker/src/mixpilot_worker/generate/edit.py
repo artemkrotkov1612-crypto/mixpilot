@@ -74,7 +74,8 @@ def run_apply_edit(payload: dict, ctx: JobContext) -> dict:
     peaks_path.write_text(json.dumps(waveform_peaks(audio)), encoding="utf-8")
 
     title = f"Вариант {chr(ord('A') + new_idx)} — с изменениями"
-    desc = _describe_ops(ops)
+    # Если правку сформулировали словами, показываем формулировку модели.
+    desc = (payload.get("summary_ru") or "").strip() or _describe_ops(ops)
     variant_id = db.new_id()
     with db.connect() as conn:
         conn.execute(

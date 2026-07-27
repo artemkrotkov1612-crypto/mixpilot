@@ -64,6 +64,40 @@ def tmp_dir() -> Path:
     return data_dir() / "tmp"
 
 
+def secrets_path() -> Path:
+    """Ключи живут в папке данных, а не в репозитории и не в БД проекта."""
+    return data_dir() / "secrets" / "llm.json"
+
+
+def load_llm_config() -> dict:
+    """Настройки облачного текста: файл секретов, поверх — переменные окружения.
+
+    Ключ никогда не логируется и не возвращается наружу целиком (см. /settings).
+    """
+    import json
+
+    cfg: dict = {
+        "base_url": "",
+        "api_key": "",
+        "model_fast": "claude-haiku-4-5-20251001",
+        "model_quality": "claude-sonnet-4-5-20250929",
+    }
+    # Окружение — только запасной вариант: явные настройки приложения главнее,
+    # иначе случайная ANTHROPIC_BASE_URL в оболочке уведёт запросы не туда.
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        cfg["api_key"] = os.environ["ANTHROPIC_API_KEY"]
+    if os.environ.get("ANTHROPIC_BASE_URL"):
+        cfg["base_url"] = os.environ["ANTHROPIC_BASE_URL"]
+
+    path = secrets_path()
+    if path.exists():
+        try:
+            cfg.update({k: v for k, v in json.loads(path.read_text("utf-8")).items() if v})
+        except (OSError, json.JSONDecodeError):
+            pass
+    return cfg
+
+
 def _ffmpeg_roots() -> list[Path]:
     roots: list[Path] = []
     env = os.environ.get("MIXPILOT_FFMPEG_DIR")

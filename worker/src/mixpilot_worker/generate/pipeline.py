@@ -5,6 +5,7 @@
 """
 
 import json
+import logging
 
 import numpy as np
 import soundfile as sf
@@ -19,6 +20,24 @@ from ..styles import base as style_base
 from ..styles.registry import STYLE_NAMES, plan_variants, resolve_style
 
 SR = style_base.SR
+log = logging.getLogger("mixpilot.generate")
+
+# Русские подписи блоков для контекста модели (аудио не отправляем — только метки).
+SECTION_RU = {
+    "intro": "вступление", "verse": "куплет", "chorus": "припев",
+    "bridge": "проигрыш", "drop": "дроп", "outro": "финал",
+}
+
+
+def _llm_context(analysis: dict | None) -> dict:
+    """Минимальный текстовый контекст для модели: темп и названия блоков."""
+    if not analysis:
+        return {}
+    sections = analysis.get("sections") or []
+    return {
+        "bpm": analysis.get("bpm"),
+        "sections": [SECTION_RU.get(s.get("label", ""), s.get("label", "")) for s in sections][:12],
+    }
 
 
 def _load_stems_audio(stem_paths: dict[str, str]) -> dict[str, np.ndarray]:
@@ -65,12 +84,31 @@ def run_generate(payload: dict, ctx: JobContext) -> dict:
 
     request = json.loads(gen["request_json"])
     quality = gen["quality_mode"]
-    style = resolve_style(request.get("style"))
     chips = request.get("chips", [])
     track_id = src["id"]
 
     ctx.report("analyze", 0.05, human="Слушаем трек…")
     analysis = _analysis_for(track_id, ctx)
+
+    # Свободный текст (если облако включено) может задать стиль и правки.
+    text = (request.get("text") or "").strip()
+    text_ops: list[dict] = []
+    text_summary = ""
+    style_from_text = ""
+    if text:
+        try:
+            from ..llm.understand import text_to_plan
+
+            ctx.report("plan", 0.3, human="Читаем ваши пожелания…")
+            plan = text_to_plan(text, _llm_context(analysis))
+            style_from_text = plan.get("style") or ""
+            text_ops = plan.get("ops") or []
+            text_summary = plan.get("summary_ru") or ""
+        except AppError as exc:
+            # Облако недоступно или не поняло — стили и карточки работают всегда.
+            log.info("свободный текст пропущен: %s", exc.code)
+
+    style = resolve_style(style_from_text or request.get("style"), analysis)
 
     ctx.report("stems", 0.2, human="Разделяем на дорожки…")
     stem_paths = get_stems(track_id, quality, ctx)
@@ -78,6 +116,14 @@ def run_generate(payload: dict, ctx: JobContext) -> dict:
 
     ctx.report("plan", 0.42, human="Придумываем варианты…")
     variants = plan_variants(style, chips)
+    if text_ops:
+        # Пожелания словами применяются поверх каждого варианта.
+        from ..llm.edit_dsl import apply_ops
+
+        for v in variants:
+            v["params"] = apply_ops(v["params"], text_ops)
+        if text_summary:
+            variants[1]["description_ru"] = f"{variants[1]['description_ru']} · {text_summary}"
 
     render_dir = _render_dir(generation_id)
     results = []
@@ -115,7 +161,12 @@ def run_generate(payload: dict, ctx: JobContext) -> dict:
         results.append({"id": variant_id, "idx": v["idx"], "title_ru": v["title_ru"],
                         "description_ru": v["description_ru"]})
 
-    plan_summary = {"style": style, "style_name": STYLE_NAMES.get(style, style), "chips": chips}
+    plan_summary = {
+        "style": style,
+        "style_name": STYLE_NAMES.get(style, style),
+        "chips": chips,
+        "text_summary_ru": text_summary,
+    }
     with db.connect() as conn:
         conn.execute(
             "UPDATE generations SET status='ready', plan_json=?, finished_at=? WHERE id=?",

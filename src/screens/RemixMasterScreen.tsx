@@ -19,13 +19,13 @@ import { useScreens } from '../state/screens';
 import { toast } from '../state/toasts';
 
 /** Слаг стиля для worker'а -> подпись в UI. M3 реализует Slowed и Bass Boosted. */
-export const REMIX_STYLES: { slug: string; label: string; ready: boolean }[] = [
-  { slug: 'slowed', label: 'Slowed', ready: true },
-  { slug: 'bass_boosted', label: 'Bass Boosted', ready: true },
-  { slug: 'phonk', label: 'Phonk', ready: false },
-  { slug: 'club', label: 'Club', ready: false },
-  { slug: 'house', label: 'House', ready: false },
-  { slug: 'auto', label: '✨ AI сам решит', ready: true },
+export const REMIX_STYLES: { slug: string; label: string }[] = [
+  { slug: 'slowed', label: 'Slowed' },
+  { slug: 'bass_boosted', label: 'Bass Boosted' },
+  { slug: 'phonk', label: 'Phonk' },
+  { slug: 'club', label: 'Club' },
+  { slug: 'house', label: 'House' },
+  { slug: 'auto', label: '✨ AI сам решит' },
 ];
 export const MOOD_CHIPS = [
   'Мрачно', 'Энергично', 'Спокойно', 'Мощный бас', 'Клубно',
@@ -241,11 +241,9 @@ export function RemixMasterScreen({ projectId, initialTrackId }: { projectId?: s
             <button
               key={s.slug}
               className={`chip ${state.style === s.slug ? 'active' : ''}`}
-              title={s.ready ? undefined : 'Скоро — пока соберём в ближайшем доступном стиле'}
               onClick={() => update({ style: state.style === s.slug ? null : s.slug })}
             >
               {s.label}
-              {!s.ready && ' ·'}
             </button>
           ))}
         </div>

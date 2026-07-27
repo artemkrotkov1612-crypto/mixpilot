@@ -94,6 +94,30 @@ class EditBody(BaseModel):
     text: str | None = None
 
 
+def _edit_context(variant_id: str) -> dict:
+    """Текстовый контекст для модели: стиль, темп, названия блоков. Без аудио."""
+    from ..analysis.run import get_analysis
+    from ..generate.pipeline import _llm_context
+
+    with db.connect() as conn:
+        row = conn.execute(
+            """SELECT g.plan_json, pt.track_id FROM generation_variants v
+               JOIN generations g ON g.id = v.generation_id
+               LEFT JOIN project_tracks pt ON pt.project_id = g.project_id AND pt.role='source'
+               WHERE v.id=? LIMIT 1""",
+            (variant_id,),
+        ).fetchone()
+    if row is None:
+        return {}
+    ctx = {}
+    plan = json.loads(row["plan_json"] or "null") or {}
+    if plan.get("style_name"):
+        ctx["style_name"] = plan["style_name"]
+    if row["track_id"]:
+        ctx.update(_llm_context(get_analysis(row["track_id"])))
+    return ctx
+
+
 @router.post("/variants/{variant_id}/edit")
 def edit_variant(variant_id: str, body: EditBody) -> dict:
     with db.connect() as conn:
@@ -102,7 +126,17 @@ def edit_variant(variant_id: str, body: EditBody) -> dict:
 
     ops = list(body.ops) if body.ops else []
     ops += edit_dsl.chips_to_ops(body.chips)
-    # Свободный текст -> DSL через Claude появится в M4; пока используем чипы/ops.
+
+    summary = ""
+    text = (body.text or "").strip()
+    if text:
+        # Свободный текст -> операции через Claude (в облако уходит только текст).
+        from ..llm.understand import text_to_ops
+
+        understood = text_to_ops(text, _edit_context(variant_id))
+        ops += understood["ops"]
+        summary = understood["summary_ru"]
+
     try:
         ops = edit_dsl.validate_ops(ops)
     except edit_dsl.DslError as exc:
@@ -110,9 +144,9 @@ def edit_variant(variant_id: str, body: EditBody) -> dict:
     if not ops:
         raise AppError("E_BAD_REQUEST", "не выбрано ни одного изменения", status=422)
 
-    job = queue.enqueue("apply_edit", {"variant_id": variant_id, "ops": ops},
+    job = queue.enqueue("apply_edit", {"variant_id": variant_id, "ops": ops, "summary_ru": summary},
                         priority=queue.PRIORITY["interactive"], gpu=True)
-    return {"job": job}
+    return {"job": job, "summary_ru": summary}
 
 
 class FeedbackBody(BaseModel):

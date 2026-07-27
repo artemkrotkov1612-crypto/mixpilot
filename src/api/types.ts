@@ -127,6 +127,14 @@ export interface Generation {
   error_code: string | null;
 }
 
+export interface CloudStatus {
+  enabled: boolean;
+  has_key: boolean;
+  ready: boolean;
+  base_url: string;
+  key_hint: string;
+}
+
 export interface StorageInfo {
   data_dir: string;
   disk_total_gb: number;

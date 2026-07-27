@@ -22,17 +22,66 @@ STYLE_NAMES = {
     "auto": "AI сам решит",
 }
 
-# Реализованные в M3 стили; остальные добавит M4.
-IMPLEMENTED = {"slowed", "bass_boosted"}
+IMPLEMENTED = {"slowed", "bass_boosted", "phonk", "club", "house"}
 
 
-def resolve_style(style: str | None) -> str:
-    if not style or style not in IMPLEMENTED:
-        return "slowed" if style in (None, "auto", "slowed") else "bass_boosted"
-    return style
+def resolve_style(style: str | None, analysis: dict | None = None) -> str:
+    """Слаг стиля. 'auto' и неизвестное выбираются по характеру трека."""
+    if style in IMPLEMENTED:
+        return style
+    return auto_style(analysis)
+
+
+def auto_style(analysis: dict | None) -> str:
+    """«AI сам решит» без облака: по темпу и энергии трека.
+
+    Быстрые треки уводим в клубную сторону, медленные — в Slowed;
+    средний темп с плотным низом — Phonk, иначе Bass Boosted.
+    """
+    if not analysis:
+        return "slowed"
+    bpm = float(analysis.get("bpm") or 0)
+    sections = analysis.get("sections") or []
+    energy = max((float(s.get("energy", 0)) for s in sections), default=0.5)
+
+    if bpm >= 124:
+        return "house" if energy < 0.8 else "club"
+    if bpm <= 95:
+        return "slowed"
+    return "phonk" if energy >= 0.7 else "bass_boosted"
 
 
 def _base_params(style: str) -> StyleParams:
+    if style == "phonk":
+        # Медленнее и ниже, жирный сатурированный низ, приглушённый верх.
+        return StyleParams(
+            tempo_factor=0.92, pitch_semitones=-2.0,
+            gain_db={"drums": 1.5, "bass": 2.5},
+            bass_shelf_db=7.0, bass_drive_db=9.0, kick_boost_db=4.0,
+            sub_db=2.5, warmth_db=-3.0, vocal_reverb=0.12,
+            comp_threshold_db=-15.0, comp_ratio=3.0,
+            target_loudness="club", ceiling_db=-1.0,
+        )
+    if style == "club":
+        # Энергия и удар: быстрее, яркий верх, плотная компрессия.
+        return StyleParams(
+            tempo_factor=1.06, pitch_semitones=0.0,
+            gain_db={"drums": 2.0, "bass": 1.5},
+            bass_shelf_db=4.0, bass_drive_db=3.0, kick_boost_db=5.0,
+            sub_db=2.0, air_db=3.0,
+            comp_threshold_db=-14.0, comp_ratio=3.5,
+            target_loudness="club", ceiling_db=-1.0,
+        )
+    if style == "house":
+        # Ровный грув, мягче кик, воздух и лёгкая атмосфера на вокале.
+        return StyleParams(
+            tempo_factor=1.04, pitch_semitones=0.0,
+            gain_db={"drums": 1.0, "other": 1.0},
+            bass_shelf_db=3.0, bass_drive_db=2.0, kick_boost_db=2.5,
+            sub_db=1.5, air_db=2.5, vocal_reverb=0.14,
+            comp_threshold_db=-16.0, comp_ratio=2.5,
+            target_loudness="club", ceiling_db=-1.0,
+        )
     if style == "bass_boosted":
         return StyleParams(
             tempo_factor=1.0, pitch_semitones=0.0,
@@ -53,6 +102,40 @@ def _base_params(style: str) -> StyleParams:
 
 # Три характера варианта: (суффикс имени, описание, функция-модификатор base->params).
 def _variants_for(style: str) -> list[tuple[str, str, callable]]:
+    if style == "phonk":
+        return [
+            ("Классика стиля", "Тяжёлый низ и приглушённый верх",
+             lambda p: p),
+            ("Плавный акцент", "Мягче кач, вокал разборчивее",
+             lambda p: replace(p, tempo_factor=0.95, bass_drive_db=p.bass_drive_db - 2.0,
+                               gain_db={**p.gain_db, "vocals": 1.5})),
+            ("Смелый вариант", "Ниже тон, гуще сатурация",
+             lambda p: replace(p, pitch_semitones=p.pitch_semitones - 1.5,
+                               bass_drive_db=p.bass_drive_db + 3.0, sub_db=p.sub_db + 2.0)),
+        ]
+    if style == "club":
+        return [
+            ("Классика стиля", "Энергичный бит и яркий верх",
+             lambda p: p),
+            ("Плавный акцент", "Ровнее динамика, акцент на вокал",
+             lambda p: replace(p, comp_ratio=p.comp_ratio - 1.0, air_db=p.air_db - 1.0,
+                               gain_db={**p.gain_db, "vocals": 1.5})),
+            ("Смелый вариант", "Быстрее и мощнее — для танцпола",
+             lambda p: replace(p, tempo_factor=min(p.tempo_factor + 0.05, 1.15),
+                               kick_boost_db=p.kick_boost_db + 2.0, sub_db=p.sub_db + 1.5,
+                               comp_ratio=p.comp_ratio + 0.5)),
+        ]
+    if style == "house":
+        return [
+            ("Классика стиля", "Ровный грув и лёгкий воздух",
+             lambda p: p),
+            ("Плавный акцент", "Глубже атмосфера, мягче верх",
+             lambda p: replace(p, vocal_reverb=p.vocal_reverb + 0.12, air_db=p.air_db - 1.0,
+                               warmth_db=-1.5)),
+            ("Смелый вариант", "Плотнее бас и заметнее бит",
+             lambda p: replace(p, bass_shelf_db=p.bass_shelf_db + 2.5, kick_boost_db=p.kick_boost_db + 2.0,
+                               gain_db={**p.gain_db, "drums": p.gain_db.get("drums", 0.0) + 1.0})),
+        ]
     if style == "bass_boosted":
         return [
             ("Классика стиля", "Ровный мощный бас и чёткий кик",
