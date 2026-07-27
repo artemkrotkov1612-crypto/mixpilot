@@ -4,6 +4,7 @@ export type Screen =
   | { name: 'home' }
   | { name: 'library' }
   | { name: 'remix'; projectId?: string; initialTrackId?: string }
+  | { name: 'results'; generationId: string }
   | { name: 'settings' };
 
 interface ScreensState {

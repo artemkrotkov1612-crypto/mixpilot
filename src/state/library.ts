@@ -111,7 +111,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   remove: async (trackId) => {
     await api(`/library/tracks/${trackId}`, { method: 'DELETE' });
     const player = usePlayer.getState();
-    if (player.track?.id === trackId) player.stop();
+    if (player.current?.id === `track:${trackId}`) player.stop();
     await get().refresh();
     toast('Удалено из библиотеки. Исходный файл на диске не тронут', 'ok');
   },

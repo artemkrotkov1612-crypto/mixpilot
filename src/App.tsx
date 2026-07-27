@@ -5,6 +5,7 @@ import { Toasts } from './components/Toasts';
 import { HomeScreen } from './screens/HomeScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { RemixMasterScreen } from './screens/RemixMasterScreen';
+import { ResultsScreen } from './screens/ResultsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { useEngine } from './state/engine';
 import { useScreens } from './state/screens';
@@ -24,6 +25,8 @@ function CurrentScreen() {
           initialTrackId={screen.initialTrackId}
         />
       );
+    case 'results':
+      return <ResultsScreen key={screen.generationId} generationId={screen.generationId} />;
     case 'settings':
       return <SettingsScreen />;
   }

@@ -13,6 +13,10 @@ dependencies = [
     "demucs>=4.0.1",
     "librosa>=0.10.2",
     "soundfile>=0.12",
+    # M3: сведение/мастеринг
+    "scipy>=1.11",
+    "pyloudnorm>=0.1.1",
+    "numba>=0.60",  # njit для горячих DSP-циклов (транзитивно из librosa, фиксируем явно)
 ]
 
 [dependency-groups]

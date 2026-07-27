@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import type { Track } from '../api/types';
 import { formatDuration } from '../lib/format';
 import { useLibrary } from '../state/library';
-import { usePlayer } from '../state/player';
+import { trackPlayable, usePlayer } from '../state/player';
 import { useScreens } from '../state/screens';
 import { toast } from '../state/toasts';
 
 export function TrackRow({ track, showRemix = true }: { track: Track; showRemix?: boolean }) {
-  const { play, track: current, playing } = usePlayer();
+  const { play, current, playing } = usePlayer();
   const { remove, toggleFavorite } = useLibrary();
   const go = useScreens((s) => s.go);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const isCurrent = current?.id === track.id;
+  const isCurrent = current?.id === `track:${track.id}`;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -40,7 +40,10 @@ export function TrackRow({ track, showRemix = true }: { track: Track; showRemix?
 
   return (
     <div className={`track-row ${isCurrent ? 'playing' : ''} ${menuOpen ? 'menu-open' : ''}`}>
-      <button className={`play-btn ${isCurrent && playing ? 'playing' : ''}`} onClick={() => void play(track)}>
+      <button
+        className={`play-btn ${isCurrent && playing ? 'playing' : ''}`}
+        onClick={() => void play(trackPlayable(track))}
+      >
         {isCurrent && playing ? '⏸' : '▶'}
       </button>
       <div className="meta">

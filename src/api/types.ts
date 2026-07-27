@@ -104,6 +104,29 @@ export interface StartProcessing {
   job?: Job;
 }
 
+export interface Variant {
+  id: string;
+  generation_id: string;
+  idx: number;
+  title_ru: string;
+  description_ru: string | null;
+  render_wav: string | null;
+  render_peaks: string | null;
+  parent_variant_id: string | null;
+  rating: number;
+}
+
+export interface Generation {
+  id: string;
+  project_id: string;
+  status: 'queued' | 'processing' | 'ready' | 'error';
+  quality_mode: 'fast' | 'max';
+  request: RemixParams & Record<string, unknown>;
+  plan: { style: string; style_name: string; chips: string[] } | null;
+  variants: Variant[];
+  error_code: string | null;
+}
+
 export interface StorageInfo {
   data_dir: string;
   disk_total_gb: number;

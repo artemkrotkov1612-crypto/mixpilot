@@ -7,6 +7,8 @@ const { Readable } = require('node:stream');
 
 // Имена файлов в originals: <hash16>.<ext> — задаёт worker при импорте.
 const FILE_RE = /^[a-f0-9]{16}\.[a-z0-9]{2,5}$/;
+// Рендеры вариантов: renders/<generation>/variant_<n>.wav
+const RENDER_RE = /^[a-f0-9]{32}\/variant_\d+\.wav$/;
 
 const MIME = {
   '.mp3': 'audio/mpeg',
@@ -30,6 +32,10 @@ function dataDir() {
 
 function originalsDir() {
   return path.join(dataDir(), 'media', 'originals');
+}
+
+function rendersDir() {
+  return path.join(dataDir(), 'renders');
 }
 
 /** Вызывать до app.whenReady(): схема со stream-семантикой для <audio>/wavesurfer. */
@@ -60,14 +66,22 @@ function parseRange(header, size) {
 
 /** media://originals/<file> — стрим из хранилища с поддержкой Range (перемотка). */
 function installMediaProtocol() {
-  const root = originalsDir();
   protocol.handle('media', async (request) => {
     const url = new URL(request.url);
-    if (url.host !== 'originals') return new Response('not found', { status: 404 });
-    const name = decodeURIComponent(url.pathname.replace(/^\//, ''));
-    if (!FILE_RE.test(name)) return new Response('bad name', { status: 400 });
-
-    const file = path.join(root, name);
+    // media://originals/<hash>.<ext>  или  media://render/<gen>/variant_<n>.wav
+    let file;
+    if (url.host === 'originals') {
+      const name = decodeURIComponent(url.pathname.replace(/^\//, ''));
+      if (!FILE_RE.test(name)) return new Response('bad name', { status: 400 });
+      file = path.join(originalsDir(), name);
+    } else if (url.host === 'render') {
+      const rel = decodeURIComponent(url.pathname.replace(/^\//, ''));
+      if (!RENDER_RE.test(rel)) return new Response('bad name', { status: 400 });
+      file = path.join(rendersDir(), rel);
+    } else {
+      return new Response('not found', { status: 404 });
+    }
+    const name = path.basename(file);
     let stat;
     try {
       stat = await fs.promises.stat(file);

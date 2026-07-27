@@ -71,3 +71,8 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 export function mediaUrl(mediaPath: string): string {
   return `media://originals/${mediaPath}`;
 }
+
+/** URL рендера варианта: render_wav вида "renders/<gen>/variant_0.wav". */
+export function renderUrl(renderWav: string): string {
+  return `media://render/${renderWav.replace(/^renders\//, '')}`;
+}

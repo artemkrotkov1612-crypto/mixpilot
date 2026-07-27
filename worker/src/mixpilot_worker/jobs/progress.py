@@ -20,6 +20,14 @@ STAGES_RU: dict[str, str] = {
     "stems.load": "Готовим модель… (при первом запуске скачается компонент)",
     "stems.separate": "Разделяем на дорожки…",
     "stems.save": "Сохраняем дорожки…",
+    "generate.analyze": "Слушаем трек…",
+    "generate.stems": "Разделяем на дорожки…",
+    "generate.plan": "Придумываем варианты…",
+    "generate.build": "Собираем варианты…",
+    "generate.done": "Готово!",
+    "apply_edit.stems": "Готовим дорожки…",
+    "apply_edit.build": "Применяем изменения…",
+    "apply_edit.done": "Готово!",
 }
 
 

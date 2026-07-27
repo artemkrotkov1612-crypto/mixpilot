@@ -14,10 +14,19 @@ import {
   saveProject,
   useProjects,
 } from '../state/projects';
+import { useGeneration } from '../state/generation';
 import { useScreens } from '../state/screens';
 import { toast } from '../state/toasts';
 
-export const REMIX_STYLES = ['Phonk', 'Bass Boosted', 'Slowed', 'Club', 'House', '✨ AI сам решит'];
+/** Слаг стиля для worker'а -> подпись в UI. M3 реализует Slowed и Bass Boosted. */
+export const REMIX_STYLES: { slug: string; label: string; ready: boolean }[] = [
+  { slug: 'slowed', label: 'Slowed', ready: true },
+  { slug: 'bass_boosted', label: 'Bass Boosted', ready: true },
+  { slug: 'phonk', label: 'Phonk', ready: false },
+  { slug: 'club', label: 'Club', ready: false },
+  { slug: 'house', label: 'House', ready: false },
+  { slug: 'auto', label: '✨ AI сам решит', ready: true },
+];
 export const MOOD_CHIPS = [
   'Мрачно', 'Энергично', 'Спокойно', 'Мощный бас', 'Клубно',
   'Атмосферно', 'Быстрее', 'Медленнее', 'Эмоциональный вокал', 'Мощный припев',
@@ -48,6 +57,8 @@ export function RemixMasterScreen({ projectId, initialTrackId }: { projectId?: s
   const [title, setTitle] = useState('Новый ремикс');
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [loading, setLoading] = useState(Boolean(projectId));
+  const [starting, setStarting] = useState(false);
+  const startGeneration = useGeneration((s) => s.start);
   const saveTimer = useRef<number | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -140,6 +151,30 @@ export function RemixMasterScreen({ projectId, initialTrackId }: { projectId?: s
     }
   };
 
+  const createRemix = async () => {
+    if (!state.track) {
+      toast('Сначала добавьте песню');
+      return;
+    }
+    setStarting(true);
+    try {
+      const id = await ensureProject();
+      const { style, chips, text, quality } = stateRef.current;
+      await saveProject(id, { title, params: { style: style ?? undefined, chips, text, quality } });
+      const generationId = await startGeneration(id, {
+        style: style ?? 'auto',
+        chips,
+        text: text || undefined,
+        quality,
+      });
+      if (generationId) go({ name: 'results', generationId });
+    } catch {
+      toast('Не удалось запустить генерацию', 'err');
+    } finally {
+      setStarting(false);
+    }
+  };
+
   const toggleMood = (chip: string) => {
     const has = state.chips.includes(chip);
     if (!has && state.chips.length >= MAX_MOODS) {
@@ -204,11 +239,13 @@ export function RemixMasterScreen({ projectId, initialTrackId }: { projectId?: s
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {REMIX_STYLES.map((s) => (
             <button
-              key={s}
-              className={`chip ${state.style === s ? 'active' : ''}`}
-              onClick={() => update({ style: state.style === s ? null : s })}
+              key={s.slug}
+              className={`chip ${state.style === s.slug ? 'active' : ''}`}
+              title={s.ready ? undefined : 'Скоро — пока соберём в ближайшем доступном стиле'}
+              onClick={() => update({ style: state.style === s.slug ? null : s.slug })}
             >
-              {s}
+              {s.label}
+              {!s.ready && ' ·'}
             </button>
           ))}
         </div>
@@ -256,10 +293,18 @@ export function RemixMasterScreen({ projectId, initialTrackId }: { projectId?: s
         </div>
         <div style={{ flex: 1 }} />
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <button className="btn btn-primary" disabled title="Появится в обновлении M3">
-            Создать ремикс
+          <button
+            className="btn btn-primary"
+            disabled={!state.track || starting}
+            onClick={() => void createRemix()}
+          >
+            {starting ? 'Запускаем…' : 'Создать ремикс'}
           </button>
-          <span className="muted small">Генерация появится в следующем обновлении — черновик уже сохраняется</span>
+          <span className="muted small">
+            {state.track
+              ? `Получите три варианта · ${state.quality === 'fast' ? '≈3 мин' : '≈10 мин'}`
+              : 'Добавьте песню, чтобы продолжить'}
+          </span>
         </div>
       </section>
     </div>

@@ -17,11 +17,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import __version__, config, db, gpu, log
 from .errors import install_handlers
 from .media import ffmpeg
-from .routers import library, processing, projects, settings
+from .routers import generations, library, processing, projects, settings
 
 # Регистрация job-хендлеров (side effect декораторов @register).
 from .analysis import run as _analysis_jobs  # noqa: F401
 from .stems import separator as _stems_jobs  # noqa: F401
+from .generate import pipeline as _generate_jobs  # noqa: F401
+from .generate import edit as _edit_jobs  # noqa: F401
 from .jobs.progress import hub
 from .jobs.runner import runner
 from .jobs import queue as jobs_queue
@@ -69,6 +71,7 @@ app.include_router(library.router)
 app.include_router(projects.router)
 app.include_router(settings.router)
 app.include_router(processing.router)
+app.include_router(generations.router)
 
 
 @app.websocket("/ws")
