@@ -67,7 +67,7 @@
       "installerLanguages": ["ru_RU"],
       "language": "1049"
     },
-    "publish": [{ "provider": "github", "owner": "artem", "repo": "mixpilot" }]
+    "publish": [{ "provider": "github", "owner": "artemkrotkov1612-crypto", "repo": "mixpilot" }]
   },
   "allowScripts": {
     "esbuild@0.25.12": true,

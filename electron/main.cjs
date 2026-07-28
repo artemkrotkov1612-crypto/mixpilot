@@ -12,6 +12,7 @@ const AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wm
 registerMediaScheme(); // строго до app.whenReady()
 
 const IS_SMOKE = process.argv.includes('--smoke-test');
+const IS_SETUP = process.argv.includes('--setup');
 const IS_DEV = process.argv.includes('--dev');
 const DEV_UI_URL = 'http://127.0.0.1:3520';
 
@@ -68,6 +69,39 @@ function createWindow() {
   });
 }
 
+/**
+ * Режим `--setup`: доустановка компонентов без окна.
+ *
+ * Нужен двум сторонам: проверке первого запуска на чистой машине и самому
+ * пользователю — если движок не собрался, эту команду можно выполнить
+ * повторно, не открывая приложение.
+ */
+async function runSetupOnly() {
+  try {
+    if (bootstrap.isReady()) {
+      console.log('SETUP_RESULT ' + JSON.stringify({ ok: true, skipped: true }));
+      app.exit(0);
+      return;
+    }
+    let last = '';
+    const started = Date.now();
+    await bootstrap.ensure((p) => {
+      if (p.text === last) return;
+      last = p.text;
+      console.log(`SETUP ${Math.round(p.pct * 100)}% ${p.text}`);
+    });
+    console.log('SETUP_RESULT ' + JSON.stringify({
+      ok: true, skipped: false, seconds: Math.round((Date.now() - started) / 1000),
+    }));
+    app.exit(0);
+  } catch (err) {
+    console.error('SETUP_RESULT ' + JSON.stringify({
+      ok: false, error_ru: err.messageRu || String(err), detail: err.detail || '',
+    }));
+    app.exit(1);
+  }
+}
+
 /** Смоук-режим: без окна — поднять worker, спросить /meta, погасить, выйти. */
 async function runSmokeTest() {
   try {
@@ -83,7 +117,7 @@ async function runSmokeTest() {
   }
 }
 
-if (!IS_SMOKE && !app.requestSingleInstanceLock()) {
+if (!IS_SMOKE && !IS_SETUP && !app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
@@ -130,6 +164,10 @@ if (!IS_SMOKE && !app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(async () => {
+    if (IS_SETUP) {
+      await runSetupOnly();
+      return;
+    }
     if (IS_SMOKE) {
       await runSmokeTest();
       return;
@@ -170,7 +208,7 @@ if (!IS_SMOKE && !app.requestSingleInstanceLock()) {
 
   let quitting = false;
   app.on('before-quit', (event) => {
-    if (quitting || IS_SMOKE) return;
+    if (quitting || IS_SMOKE || IS_SETUP) return;
     event.preventDefault();
     quitting = true;
     wm.stop().finally(() => app.quit());
