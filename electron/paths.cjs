@@ -32,8 +32,13 @@ function workerDir() {
  * config.data_dir() воркера, поэтому обе стороны всегда сходятся. Плюс
  * app.getPath('localAppData') недоступен до app.whenReady(), а пути нужны
  * раньше — при создании WorkerManager.
+ *
+ * MIXPILOT_DATA_DIR понимает и воркер: с ним проверки идут в стороне и не
+ * трогают настоящую библиотеку и проекты пользователя.
  */
 function dataDir() {
+  const override = process.env.MIXPILOT_DATA_DIR;
+  if (override) return path.resolve(override);
   const local = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
   return path.join(local, 'MixPilot');
 }

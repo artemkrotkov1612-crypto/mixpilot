@@ -258,7 +258,7 @@ wheels = [
 [[package]]
 name = "demucs"
 version = "4.1.0a3"
-source = { git = "https://github.com/adefossez/demucs#b9ab48cad45976ba42b2ff17b229c071f0df9390" }
+source = { path = "wheels/demucs-4.1.0a3-py3-none-any.whl" }
 dependencies = [
     { name = "dora-search" },
     { name = "einops" },
@@ -272,6 +272,41 @@ dependencies = [
     { name = "torchaudio", version = "2.5.1+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "platform_machine != 'aarch64' or platform_python_implementation != 'CPython' or sys_platform != 'linux'" },
     { name = "tqdm" },
 ]
+wheels = [
+    { filename = "demucs-4.1.0a3-py3-none-any.whl", hash = "sha256:dbc0abe71ee1b98af83ed1984b9eaecd9aeb6bc996fc665f66e897eafe6c510d" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "diffq", marker = "extra == 'dev'", specifier = ">=0.2.1" },
+    { name = "dora-search" },
+    { name = "dora-search", marker = "extra == 'dev'", specifier = ">=0.1.12" },
+    { name = "einops" },
+    { name = "einops", marker = "extra == 'dev'" },
+    { name = "flake8", marker = "extra == 'dev'" },
+    { name = "hydra-colorlog", marker = "extra == 'dev'", specifier = ">=1.1" },
+    { name = "hydra-core", marker = "extra == 'dev'", specifier = ">=1.1" },
+    { name = "julius", specifier = ">=0.2.3" },
+    { name = "julius", marker = "extra == 'dev'", specifier = ">=0.2.3" },
+    { name = "lameenc", specifier = ">=1.2" },
+    { name = "lameenc", marker = "extra == 'dev'", specifier = ">=1.2" },
+    { name = "museval", marker = "extra == 'dev'" },
+    { name = "mypy", marker = "extra == 'dev'" },
+    { name = "openunmix" },
+    { name = "openunmix", marker = "extra == 'dev'" },
+    { name = "pyyaml" },
+    { name = "pyyaml", marker = "extra == 'dev'" },
+    { name = "soundfile", marker = "extra == 'dev'", specifier = ">=0.10.3" },
+    { name = "submitit", marker = "extra == 'dev'" },
+    { name = "torch", specifier = ">=1.8.1" },
+    { name = "torch", marker = "extra == 'dev'", specifier = ">=1.8.1" },
+    { name = "torchaudio", specifier = ">=0.8,<2.2" },
+    { name = "torchaudio", marker = "extra == 'dev'", specifier = ">=0.8,<2.2" },
+    { name = "tqdm" },
+    { name = "tqdm", marker = "extra == 'dev'" },
+    { name = "treetable", marker = "extra == 'dev'" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "distro"
@@ -911,7 +946,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "anthropic", specifier = ">=0.40" },
-    { name = "demucs", git = "https://github.com/adefossez/demucs" },
+    { name = "demucs", path = "wheels/demucs-4.1.0a3-py3-none-any.whl" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "librosa", specifier = ">=0.10.2" },
     { name = "numba", specifier = ">=0.60" },

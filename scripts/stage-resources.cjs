@@ -23,8 +23,10 @@ const STAGE = path.join(ROOT, 'stage');
 const DEV_UV = 'C:\\TheIceBoys\\TOOLS\\uv\\uv.exe';
 const DEV_FFMPEG = 'C:\\TheIceBoys\\TOOLS\\ffmpeg\\bin';
 
-// Из worker/ берём только то, без чего не собрать окружение и не запустить движок.
-const WORKER_INCLUDE = ['src', 'pyproject.toml', 'uv.lock', 'README.md'];
+// Из worker/ берём только то, без чего не собрать окружение и не запустить
+// движок. wheels/ обязателен: demucs нужной версии там колесом, потому что
+// git-зависимость потребовала бы Git на машине пользователя.
+const WORKER_INCLUDE = ['src', 'wheels', 'pyproject.toml', 'uv.lock', 'README.md'];
 // ffplay не нужен: воспроизведением занимается сам интерфейс.
 const FFMPEG_BINARIES = ['ffmpeg.exe', 'ffprobe.exe'];
 
@@ -79,6 +81,12 @@ function main() {
   }
   if (!fs.existsSync(path.join(workerTo, 'uv.lock'))) {
     throw new Error('worker/uv.lock обязателен: без него первый запуск не соберёт окружение');
+  }
+  // Проверяем явно: без колеса demucs первый запуск на машине без Git падает,
+  // а заметно это становится только на чистой системе — то есть у пользователя.
+  const wheels = path.join(workerTo, 'wheels');
+  if (!fs.existsSync(wheels) || !fs.readdirSync(wheels).some((n) => n.startsWith('demucs-'))) {
+    throw new Error('нет worker/wheels/demucs-*.whl — соберите scripts\\build-demucs-wheel.cmd');
   }
 
   // --- uv ---

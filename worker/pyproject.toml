@@ -61,9 +61,12 @@ explicit = true
 torch = { index = "pytorch-cu124" }
 torchaudio = { index = "pytorch-cu124" }
 torchvision = { index = "pytorch-cu124" }
-# Стабильный 4.0.1 не содержит demucs.api (callback/отмена появились в 4.1.0a);
-# uv.lock пинит конкретный коммит. Для установщика (M8) соберём wheel заранее.
-demucs = { git = "https://github.com/adefossez/demucs" }
+# Стабильный 4.0.1 не содержит demucs.api (callback/отмена появились в 4.1.0a),
+# поэтому нужен коммит b9ab48c. Но git-зависимость требует Git НА МАШИНЕ
+# ПОЛЬЗОВАТЕЛЯ: на чистой Windows первый запуск падал с «Git executable not
+# found» и движок не ставился вовсе. Поэтому колесо собрано заранее из того же
+# коммита и лежит рядом — пересобрать можно scripts\build-demucs-wheel.cmd.
+demucs = { path = "wheels/demucs-4.1.0a3-py3-none-any.whl" }
 
 [build-system]
 requires = ["hatchling"]
