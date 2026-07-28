@@ -1,8 +1,5 @@
 import { useEngine } from '../state/engine';
 import { useScreens } from '../state/screens';
-import { toast } from '../state/toasts';
-
-const SOON = 'Скоро: в следующих обновлениях';
 
 export function Sidebar() {
   const { screen, go } = useScreens();
@@ -35,8 +32,8 @@ export function Sidebar() {
       >
         <span>🎤</span> Мой голос
       </button>
-      <button className="nav-item" onClick={() => toast(SOON)}>
-        <span>💜</span> Профиль вкуса
+      <button className="nav-item" onClick={() => go({ name: 'settings' })}>
+        <span>💜</span> Что мне нравится
       </button>
       <div className="spacer" />
       <button

@@ -10,7 +10,7 @@ import logging
 import numpy as np
 import soundfile as sf
 
-from .. import config, db
+from .. import config, db, taste
 from ..analysis.run import get_analysis, run_analyze
 from ..errors import AppError, not_found
 from ..jobs.runner import JobContext, register
@@ -116,6 +116,8 @@ def run_generate(payload: dict, ctx: JobContext) -> dict:
 
     ctx.report("plan", 0.42, human="Придумываем варианты…")
     variants = plan_variants(style, chips)
+    # Вкус подмешиваем до пожеланий словами: прямая просьба всегда главнее.
+    taste_summary = taste.apply_to_variants(variants)
     if text_ops:
         # Пожелания словами применяются поверх каждого варианта.
         from ..llm.edit_dsl import apply_ops
@@ -166,6 +168,7 @@ def run_generate(payload: dict, ctx: JobContext) -> dict:
         "style_name": STYLE_NAMES.get(style, style),
         "chips": chips,
         "text_summary_ru": text_summary,
+        "taste_ru": taste_summary,
     }
     with db.connect() as conn:
         conn.execute(

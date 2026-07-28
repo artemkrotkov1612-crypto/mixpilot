@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Notification, shell } = require('electron');
 const path = require('node:path');
 const { WorkerManager } = require('./workerManager.cjs');
 const { registerMediaScheme, installMediaProtocol } = require('./protocol.cjs');
@@ -84,6 +84,27 @@ if (!IS_SMOKE && !app.requestSingleInstanceLock()) {
 
   ipcMain.handle('shell:showInFolder', (_event, target) => {
     if (typeof target === 'string' && target) shell.showItemInFolder(path.normalize(target));
+  });
+
+  // Уведомление о готовности. Молчим, когда окно и так на экране: показывать
+  // системное сообщение поверх того, что пользователь и так видит, — шум.
+  ipcMain.handle('notify:done', (_event, payload) => {
+    if (!Notification.isSupported()) return false;
+    if (mainWindow && mainWindow.isVisible() && mainWindow.isFocused()) return false;
+    const { title, body } = payload || {};
+    const notification = new Notification({
+      title: typeof title === 'string' && title ? title : 'MixPilot',
+      body: typeof body === 'string' ? body : '',
+      silent: false,
+    });
+    notification.on('click', () => {
+      if (!mainWindow) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    });
+    notification.show();
+    return true;
   });
 
   app.whenReady().then(async () => {

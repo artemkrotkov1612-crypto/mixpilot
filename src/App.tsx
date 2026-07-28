@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Onboarding, onboardingDone } from './components/Onboarding';
 import { PlayerBar } from './components/PlayerBar';
 import { Sidebar } from './components/Sidebar';
 import { Toasts } from './components/Toasts';
@@ -44,6 +45,7 @@ function CurrentScreen() {
 export default function App() {
   const engine = useEngine((s) => s.state);
   const start = useEngine((s) => s.start);
+  const [needsOnboarding, setNeedsOnboarding] = useState(() => !onboardingDone());
 
   useEffect(() => start(), [start]);
 
@@ -56,6 +58,18 @@ export default function App() {
         </div>
         <div className="spinner" />
         <div className="muted">Запускаем AI-движок…</div>
+      </div>
+    );
+  }
+
+  // Знакомство показываем поверх пустого шелла: движок к этому моменту уже жив.
+  if (needsOnboarding) {
+    return (
+      <div className="app-shell">
+        <main className="screen">
+          <Onboarding onDone={() => setNeedsOnboarding(false)} />
+        </main>
+        <Toasts />
       </div>
     );
   }

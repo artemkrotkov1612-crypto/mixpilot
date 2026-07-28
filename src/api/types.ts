@@ -123,6 +123,38 @@ export interface Variant {
   render_peaks: string | null;
   parent_variant_id: string | null;
   rating: number;
+  cover_path: string | null;
+  custom_title: string | null;
+}
+
+/** Профиль вкуса: наружу только слова, без технических цифр. */
+export interface TasteProfile {
+  enabled: boolean;
+  events: number;
+  active: boolean;
+  likes_ru: string[];
+  summary_ru: string;
+}
+
+export interface TitleSuggestions {
+  titles: string[];
+  cloud: boolean;
+  cover_idea_ru: string;
+}
+
+export interface ShareLink {
+  url: string;
+  qr_svg: string;
+  expires_in_s: number;
+  filename: string;
+  hint_ru: string;
+}
+
+export interface CleanupItem {
+  key: string;
+  title_ru: string;
+  note_ru: string;
+  size_mb: number;
 }
 
 export interface Generation {
@@ -188,4 +220,7 @@ export interface StorageInfo {
   media_mb: number;
   cache_mb: number;
   renders_mb: number;
+  models_mb: number;
+  voice_mb: number;
+  tmp_mb: number;
 }

@@ -885,9 +885,11 @@ dependencies = [
     { name = "librosa" },
     { name = "numba" },
     { name = "numpy" },
+    { name = "pillow" },
     { name = "pyloudnorm" },
     { name = "scipy" },
     { name = "seed-vc" },
+    { name = "segno" },
     { name = "soundfile" },
     { name = "torch", version = "2.5.1", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'" },
     { name = "torch", version = "2.5.1+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "platform_machine != 'aarch64' or platform_python_implementation != 'CPython' or sys_platform != 'linux'" },
@@ -914,9 +916,11 @@ requires-dist = [
     { name = "librosa", specifier = ">=0.10.2" },
     { name = "numba", specifier = ">=0.60" },
     { name = "numpy", specifier = ">=1.26" },
+    { name = "pillow", specifier = ">=10.0" },
     { name = "pyloudnorm", specifier = ">=0.1.1" },
     { name = "scipy", specifier = ">=1.11" },
     { name = "seed-vc", specifier = ">=0.4.3" },
+    { name = "segno", specifier = ">=1.6" },
     { name = "soundfile", specifier = ">=0.12" },
     { name = "torch", specifier = "==2.5.1", index = "https://download.pytorch.org/whl/cu124" },
     { name = "torchaudio", specifier = "==2.5.1", index = "https://download.pytorch.org/whl/cu124" },
@@ -1708,6 +1712,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6a/38/c8afc430c0b6a614e077561cf58595153991a0341b9b988b4ff845151e7e/seed_vc-0.4.3.tar.gz", hash = "sha256:260aff9ea88d60edcb7ce44f154146caaa5935b9ec148371f6318b7ea5616a3e", size = 48518544, upload-time = "2025-09-02T07:12:16.745Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/49/edb2649126dc1a77c273978ee9e902eeefc01d2a1bc2a0b4b4e0ec8e375f/seed_vc-0.4.3-py3-none-any.whl", hash = "sha256:91033e2bafb84a83ef86bbdfdcf8529e4fab596d89c2c54869342f246c951811", size = 48580946, upload-time = "2025-09-02T07:12:00.455Z" },
+]
+
+[[package]]
+name = "segno"
+version = "1.6.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/2e/b396f750c53f570055bf5a9fc1ace09bed2dff013c73b7afec5702a581ba/segno-1.6.6.tar.gz", hash = "sha256:e60933afc4b52137d323a4434c8340e0ce1e58cec71439e46680d4db188f11b3", size = 1628586, upload-time = "2025-03-12T22:12:53.324Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/02/12c73fd423eb9577b97fc1924966b929eff7074ae6b2e15dd3d30cb9e4ae/segno-1.6.6-py3-none-any.whl", hash = "sha256:28c7d081ed0cf935e0411293a465efd4d500704072cdb039778a2ab8736190c7", size = 76503, upload-time = "2025-03-12T22:12:48.106Z" },
 ]
 
 [[package]]

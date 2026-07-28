@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Variant } from '../api/types';
+import { ArtworkPanel } from '../components/ArtworkPanel';
 import { EditPanel } from '../components/EditPanel';
 import { VariantCard } from '../components/VariantCard';
 import { useJobWatch } from '../lib/useJobWatch';
@@ -17,6 +18,7 @@ export function ResultsScreen({ generationId }: { generationId: string }) {
   const refreshRecent = useProjects((s) => s.refreshRecent);
   const stopPlayer = usePlayer((s) => s.stop);
   const [editing, setEditing] = useState<Variant | null>(null);
+  const [artwork, setArtwork] = useState<Variant | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
@@ -113,9 +115,25 @@ export function ResultsScreen({ generationId }: { generationId: string }) {
         />
       )}
 
+      {artwork && (
+        <ArtworkPanel
+          variant={artwork}
+          onClose={() => {
+            setArtwork(null);
+            void refresh(); // подхватываем новое название и обложку на карточке
+          }}
+        />
+      )}
+
       <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {variants.map((v) => (
-          <VariantCard key={v.id} variant={v} projectTitle={projectTitle} onEdit={setEditing} />
+          <VariantCard
+            key={v.id}
+            variant={v}
+            projectTitle={projectTitle}
+            onEdit={setEditing}
+            onArtwork={setArtwork}
+          />
         ))}
       </section>
 

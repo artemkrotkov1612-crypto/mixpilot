@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { coverUrl } from '../api/client';
 import type { Variant } from '../api/types';
 import { useGeneration } from '../state/generation';
 import { usePlayer, variantPlayable } from '../state/player';
@@ -13,10 +14,12 @@ export function VariantCard({
   variant,
   projectTitle,
   onEdit,
+  onArtwork,
 }: {
   variant: Variant;
   projectTitle: string;
   onEdit: (variant: Variant) => void;
+  onArtwork: (variant: Variant) => void;
 }) {
   const { play, current, playing } = usePlayer();
   const { rate, exportVariant } = useGeneration();
@@ -35,32 +38,45 @@ export function VariantCard({
         >
           {isCurrent && playing ? '⏸' : '▶'}
         </button>
+        {variant.cover_path && (
+          <img
+            src={coverUrl(variant.id, variant.cover_path)}
+            alt=""
+            style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+          />
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15 }}>
-            {variant.title_ru}
+            {variant.custom_title || variant.title_ru}
           </div>
-          <div className="muted small">{variant.description_ru}</div>
+          <div className="muted small">
+            {variant.custom_title ? variant.title_ru : variant.description_ru}
+          </div>
         </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+        {/* Повторный клик снимает оценку — и заодно стирает её из профиля вкуса. */}
         <button
           className="btn-icon"
-          title="Нравится"
-          onClick={() => void rate(variant.id, 1)}
+          title={variant.rating > 0 ? 'Убрать оценку' : 'Нравится'}
+          onClick={() => void rate(variant.id, variant.rating > 0 ? 0 : 1)}
           style={variant.rating > 0 ? { color: 'var(--like)' } : undefined}
         >
           👍
         </button>
         <button
           className="btn-icon"
-          title="Не нравится"
-          onClick={() => void rate(variant.id, -1)}
+          title={variant.rating < 0 ? 'Убрать оценку' : 'Не нравится'}
+          onClick={() => void rate(variant.id, variant.rating < 0 ? 0 : -1)}
           style={variant.rating < 0 ? { color: 'var(--warn)' } : undefined}
         >
           👎
         </button>
         <div style={{ flex: 1 }} />
+        <button className="btn btn-secondary small" onClick={() => onArtwork(variant)}>
+          Оформить
+        </button>
         <button className="btn btn-secondary small" onClick={() => onEdit(variant)}>
           Изменить
         </button>

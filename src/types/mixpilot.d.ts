@@ -24,6 +24,7 @@ declare global {
       pickFiles(): Promise<string[]>;
       showInFolder(targetPath: string): Promise<void>;
       getPathForFile(file: File): string;
+      notifyDone(title: string, body: string): Promise<boolean>;
     };
   }
 }

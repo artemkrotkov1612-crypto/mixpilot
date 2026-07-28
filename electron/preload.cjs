@@ -12,4 +12,6 @@ contextBridge.exposeInMainWorld('mixpilot', {
   showInFolder: (targetPath) => ipcRenderer.invoke('shell:showInFolder', targetPath),
   /** Абсолютный путь File из drag&drop (File.path убран в новых Electron). */
   getPathForFile: (file) => webUtils.getPathForFile(file),
+  /** Уведомление Windows, когда окно свёрнуто. Возвращает true, если показали. */
+  notifyDone: (title, body) => ipcRenderer.invoke('notify:done', { title, body }),
 });

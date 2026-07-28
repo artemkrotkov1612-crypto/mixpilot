@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
-import type { CloudStatus, Settings, StorageInfo } from '../api/types';
+import type { CleanupItem, CloudStatus, Settings, StorageInfo, TasteProfile } from '../api/types';
 import { useEngine } from '../state/engine';
 import { toast } from '../state/toasts';
 
@@ -9,16 +9,53 @@ export function SettingsScreen() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [storage, setStorage] = useState<StorageInfo | null>(null);
   const [cloud, setCloud] = useState<CloudStatus | null>(null);
+  const [taste, setTaste] = useState<TasteProfile | null>(null);
+  const [cleanup, setCleanup] = useState<CleanupItem[]>([]);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [cleaning, setCleaning] = useState(false);
 
   const refresh = async () => {
-    const [s, st, cl] = await Promise.all([
+    const [s, st, cl, tp, cu] = await Promise.all([
       api<Settings>('/settings'),
       api<StorageInfo>('/storage'),
       api<CloudStatus>('/cloud'),
+      api<TasteProfile>('/taste'),
+      api<{ items: CleanupItem[] }>('/storage/cleanup'),
     ]);
     setSettings(s);
     setStorage(st);
     setCloud(cl);
+    setTaste(tp);
+    setCleanup(cu.items);
+  };
+
+  const toggleLearning = async () => {
+    await api<Settings>('/settings', {
+      method: 'PUT',
+      json: { key: 'learning_enabled', value: !(taste?.enabled ?? true) },
+    });
+    setTaste(await api<TasteProfile>('/taste'));
+  };
+
+  const forgetTaste = async () => {
+    setTaste(await api<TasteProfile>('/taste', { method: 'DELETE' }));
+    toast('Предпочтения забыты');
+  };
+
+  const clean = async () => {
+    setCleaning(true);
+    try {
+      const result = await api<StorageInfo & { freed_mb: number }>('/storage/cleanup', {
+        json: { keys: picked },
+      });
+      toast(`Освободилось ${result.freed_mb} МБ`);
+      setPicked([]);
+      await refresh();
+    } catch {
+      toast('Не удалось очистить', 'err');
+    } finally {
+      setCleaning(false);
+    }
   };
 
   const toggleCloud = async () => {
@@ -85,7 +122,34 @@ export function SettingsScreen() {
         {cloud?.has_key && <p className="muted small">Провайдер: {cloud.base_url}</p>}
       </div>
 
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <h2 className="h2">Что мне нравится</h2>
+        {taste ? (
+          <>
+            <div className="small">{taste.summary_ru}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <button className={`chip ${taste.enabled ? 'active' : ''}`} onClick={() => void toggleLearning()}>
+                {taste.enabled ? 'Учусь на ваших оценках' : 'Не учусь'}
+              </button>
+              {taste.events > 0 && (
+                <button className="btn btn-secondary small" onClick={() => void forgetTaste()}>
+                  Забыть всё
+                </button>
+              )}
+            </div>
+            <p className="muted small">
+              Когда вы ставите 👍 и 👎, я запоминаю, чем понравившийся вариант отличался от соседних, и слегка
+              подстраиваю следующие. Это не заменяет выбранный стиль и ваши прямые пожелания.
+            </p>
+          </>
+        ) : (
+          <div className="muted small">
+            {engine.kind === 'online' ? 'Загружаем…' : 'Движок недоступен — данные появятся, когда он запустится'}
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <h2 className="h2">Хранилище</h2>
         {storage ? (
           <>
@@ -94,14 +158,44 @@ export function SettingsScreen() {
               Свободно на диске: <b>{storage.disk_free_gb} ГБ</b> из {storage.disk_total_gb} ГБ
             </div>
             <div className="small muted">
-              Музыка: {storage.media_mb} МБ · Кеш обработки: {storage.cache_mb} МБ · Результаты: {storage.renders_mb} МБ
+              Музыка: {storage.media_mb} МБ · Кеш обработки: {storage.cache_mb} МБ · Результаты:{' '}
+              {storage.renders_mb} МБ · Модели: {storage.models_mb} МБ · Голос: {storage.voice_mb} МБ
             </div>
-            <button className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} onClick={() => void refresh()}>
-              Обновить
-            </button>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              {cleanup.map((item) => (
+                <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={picked.includes(item.key)}
+                    onChange={() =>
+                      setPicked((p) => (p.includes(item.key) ? p.filter((k) => k !== item.key) : [...p, item.key]))
+                    }
+                  />
+                  <span className="small" style={{ flex: 1 }}>
+                    {item.title_ru} — <b>{item.size_mb} МБ</b>
+                    <span className="muted"> · {item.note_ru}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" onClick={() => void refresh()}>
+                Обновить
+              </button>
+              <button className="btn btn-secondary" disabled={picked.length === 0 || cleaning} onClick={() => void clean()}>
+                {cleaning ? 'Чистим…' : 'Очистить выбранное'}
+              </button>
+            </div>
+            <p className="muted small">
+              Ваши песни, записи голоса и готовые результаты не удаляются — их здесь нет.
+            </p>
           </>
         ) : (
-          <div className="muted small">Загружаем…</div>
+          <div className="muted small">
+            {engine.kind === 'online' ? 'Загружаем…' : 'Движок недоступен — данные появятся, когда он запустится'}
+          </div>
         )}
       </div>
 
@@ -115,7 +209,6 @@ export function SettingsScreen() {
         ) : (
           <div className="small muted">Движок недоступен</div>
         )}
-        <p className="muted small">Облако (понимание текста) и «Мой голос» появятся в следующих обновлениях.</p>
       </div>
     </div>
   );

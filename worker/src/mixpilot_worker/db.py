@@ -11,7 +11,7 @@ from contextlib import contextmanager
 
 from . import config
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users(
@@ -94,7 +94,9 @@ CREATE TABLE IF NOT EXISTS generation_variants(
   render_peaks TEXT,
   params_json TEXT NOT NULL DEFAULT '{}',
   parent_variant_id TEXT,
-  rating INTEGER NOT NULL DEFAULT 0
+  rating INTEGER NOT NULL DEFAULT 0,
+  cover_path TEXT,
+  custom_title TEXT
 );
 CREATE TABLE IF NOT EXISTS jobs(
   id TEXT PRIMARY KEY,
@@ -194,6 +196,11 @@ def connect():
         conn.close()
 
 
+def _has_column(conn, table: str, column: str) -> bool:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(r["name"] == column for r in rows)
+
+
 def init_db() -> None:
     config.ensure_dirs()
     with connect() as conn:
@@ -201,8 +208,15 @@ def init_db() -> None:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version < 1:
             conn.executescript(_SCHEMA)
-            conn.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
-        # future: if version < 2: ALTER ... ; PRAGMA user_version=2
+            conn.execute("PRAGMA user_version=1")
+            version = 1
+        if version < 2:
+            # M7: своё название и обложка варианта. На новой базе колонки уже
+            # есть из _SCHEMA, на базе пользователя с M6 — добавляем.
+            for column, ddl in (("cover_path", "TEXT"), ("custom_title", "TEXT")):
+                if not _has_column(conn, "generation_variants", column):
+                    conn.execute(f"ALTER TABLE generation_variants ADD COLUMN {column} {ddl}")
+            conn.execute("PRAGMA user_version=2")
         conn.execute(
             "INSERT OR IGNORE INTO users(id, name, created_at) VALUES(?,?,?)",
             (LOCAL_USER, "Локальный пользователь", now_iso()),

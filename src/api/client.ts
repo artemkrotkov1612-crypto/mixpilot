@@ -97,3 +97,8 @@ export function mediaUrl(mediaPath: string): string {
 export function renderUrl(renderWav: string): string {
   return `media://render/${renderWav.replace(/^renders\//, '')}`;
 }
+
+/** Обложка варианта. Метка времени — чтобы после перерисовки не показалась старая. */
+export function coverUrl(variantId: string, stamp: number | string = ''): string {
+  return `${baseUrl}/variants/${variantId}/cover.png${stamp ? `?v=${stamp}` : ''}`;
+}

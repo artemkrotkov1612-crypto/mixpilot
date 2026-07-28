@@ -18,7 +18,8 @@ interface GenerationState {
   refresh: () => Promise<void>;
   /** Правка варианта чипами/операциями — возвращает id задачи. */
   edit: (variantId: string, chips: string[], text?: string) => Promise<string | null>;
-  rate: (variantId: string, rating: 1 | -1) => Promise<void>;
+  /** 0 — снять оценку (и убрать её из профиля вкуса). */
+  rate: (variantId: string, rating: 1 | -1 | 0) => Promise<void>;
   exportVariant: (variantId: string, format: 'mp3' | 'wav' | 'flac') => Promise<void>;
   setJob: (jobId: string | null) => void;
   clear: () => void;

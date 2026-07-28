@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 import platform
+import shutil
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -14,10 +15,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import __version__, config, db, gpu, log
+from . import __version__, config, db, gpu, log, share
 from .errors import install_handlers
 from .media import ffmpeg
-from .routers import generations, library, processing, projects, settings, voice
+from .routers import artwork, generations, library, processing, projects, settings, voice
 
 # Регистрация job-хендлеров (side effect декораторов @register).
 from .analysis import run as _analysis_jobs  # noqa: F401
@@ -43,7 +44,10 @@ async def lifespan(_app: FastAPI):
     # tmp чистится при старте: там только незавершённые операции прошлой сессии
     for leftover in config.tmp_dir().glob("*"):
         try:
-            leftover.unlink()
+            if leftover.is_dir():
+                shutil.rmtree(leftover, ignore_errors=True)
+            else:
+                leftover.unlink()
         except OSError:
             pass
     resumed = jobs_queue.reset_running_to_queued()
@@ -54,6 +58,8 @@ async def lifespan(_app: FastAPI):
         extra={"ctx": {"data_dir": str(config.data_dir()), "resumed_jobs": resumed}},
     )
     yield
+    # Порт «на телефон» не должен пережить окно приложения.
+    share.stop()
     await runner.stop()
 
 
@@ -75,6 +81,7 @@ app.include_router(settings.router)
 app.include_router(processing.router)
 app.include_router(generations.router)
 app.include_router(voice.router)
+app.include_router(artwork.router)
 
 
 @app.websocket("/ws")

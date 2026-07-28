@@ -21,7 +21,19 @@ export function useJobWatch(jobId: string | null, onSettle: (r: Settled) => void
   const [progress, setProgress] = useState<JobProgress>({ humanRu: 'Готовимся…', pct: 0 });
 
   const settle = useCallback(
-    (status: Settled['status'], messageRu?: string) => onSettle({ status, messageRu }),
+    (status: Settled['status'], messageRu?: string) => {
+      // Единственное место, где завершается любая задача, — здесь же и сообщаем
+      // в Windows. Main-процесс промолчит, если окно и так перед глазами.
+      if (status !== 'cancelled') {
+        void window.mixpilot
+          ?.notifyDone(
+            status === 'done' ? 'Готово!' : 'Не получилось',
+            status === 'done' ? 'Ваши варианты собраны — загляните в MixPilot' : (messageRu ?? ''),
+          )
+          .catch(() => undefined);
+      }
+      onSettle({ status, messageRu });
+    },
     [onSettle],
   );
 

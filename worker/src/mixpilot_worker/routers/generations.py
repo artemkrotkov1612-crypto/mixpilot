@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from .. import config, db
+from .. import config, db, taste
 from ..errors import AppError, not_found
 from ..jobs import queue
 from ..llm import edit_dsl
@@ -169,11 +169,8 @@ def variant_feedback(variant_id: str, body: FeedbackBody) -> dict:
         cur = conn.execute("UPDATE generation_variants SET rating=? WHERE id=?", (rating, variant_id))
         if cur.rowcount == 0:
             raise not_found("вариант не найден")
-        conn.execute(
-            "INSERT INTO taste_events(id,user_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
-            (db.new_id(), db.LOCAL_USER, "like" if rating > 0 else "dislike",
-             json.dumps({"variant_id": variant_id}), db.now_iso()),
-        )
+        if taste.is_enabled():
+            taste.record_choice(conn, variant_id, rating)
     return {"rating": rating}
 
 
