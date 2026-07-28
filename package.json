@@ -17,7 +17,7 @@
     "smoke": "electron . --smoke-test",
     "prestage": "npm run ui:build",
     "stage": "node scripts/stage-resources.cjs",
-    "dist": "npm run stage && electron-builder --win nsis"
+    "dist": "node scripts/prepare-buildtools.cjs && npm run stage && electron-builder --win nsis"
   },
   "dependencies": {
     "electron-updater": "^6.3.9",
@@ -55,8 +55,7 @@
     ],
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
-      "artifactName": "MixPilot-${version}-setup.${ext}",
-      "signAndEditExecutable": false
+      "artifactName": "MixPilot-${version}-setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
