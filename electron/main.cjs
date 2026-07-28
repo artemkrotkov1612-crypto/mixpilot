@@ -4,6 +4,8 @@ const { app, BrowserWindow, dialog, ipcMain, Notification, shell } = require('el
 const path = require('node:path');
 const { WorkerManager } = require('./workerManager.cjs');
 const { registerMediaScheme, installMediaProtocol } = require('./protocol.cjs');
+const bootstrap = require('./bootstrap.cjs');
+const paths = require('./paths.cjs');
 
 const AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'aiff', 'aif'];
 
@@ -14,11 +16,31 @@ const IS_DEV = process.argv.includes('--dev');
 const DEV_UI_URL = 'http://127.0.0.1:3520';
 
 const wm = new WorkerManager({
-  workerDir: path.join(app.getAppPath(), 'worker'),
+  workerDir: paths.workerDir(),
+  // Готовое окружение — только в установленном приложении. В разработке всегда
+  // `uv run` по рабочему дереву: окружение из установщика держит СВОЮ копию
+  // исходников, и dev молча проверял бы вчерашний снимок вместо текущего кода.
+  pythonBin: paths.packaged() ? paths.venvPython() : null,
+  ffmpegDir: paths.ffmpegDir(),
   log: (line) => console.log(line),
 });
 
 let mainWindow = null;
+/** Состояние доустановки компонентов: его же читает UI через worker:info. */
+let setup = { active: false, pct: 0, text_ru: '', error_ru: null };
+
+/** Обновления: тихо проверяем, ставим при следующем запуске. Никогда не мешаем. */
+function checkForUpdates() {
+  if (!app.isPackaged) return;
+  try {
+    const { autoUpdater } = require('electron-updater');
+    autoUpdater.autoDownload = true;
+    autoUpdater.on('error', (err) => console.error('updater:', String(err)));
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => console.error('updater:', String(err)));
+  } catch (err) {
+    console.error('updater unavailable:', String(err));
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -71,7 +93,7 @@ if (!IS_SMOKE && !app.requestSingleInstanceLock()) {
     }
   });
 
-  ipcMain.handle('worker:info', () => wm.info());
+  ipcMain.handle('worker:info', () => ({ ...wm.info(), setup }));
 
   ipcMain.handle('dialog:pickFiles', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -114,12 +136,34 @@ if (!IS_SMOKE && !app.requestSingleInstanceLock()) {
     }
     installMediaProtocol();
     createWindow();
+
+    // Первый запуск (и первый после обновления зависимостей) доустанавливает
+    // Python и библиотеки. Окно уже открыто — пользователь видит, что идёт.
+    // В разработке окружением занимается `uv run`, доустановка не нужна.
+    if (paths.packaged() && !bootstrap.isReady()) {
+      setup = { active: true, pct: 0, text_ru: 'Готовим движок…', error_ru: null };
+      try {
+        await bootstrap.ensure((p) => {
+          setup = { active: true, pct: p.pct, text_ru: p.text, error_ru: null };
+        });
+        setup = { active: false, pct: 1, text_ru: 'Готово', error_ru: null };
+      } catch (err) {
+        console.error('bootstrap failed:', err.detail || err);
+        setup = {
+          active: false, pct: 0, text_ru: '',
+          error_ru: err.messageRu || 'Не удалось подготовить движок',
+        };
+        return; // без окружения worker не запустится — показываем ошибку
+      }
+    }
+
     try {
       await wm.start();
     } catch (err) {
       console.error('worker start failed:', err);
       // UI покажет статус offline; авторестарт-стратегия — M2.
     }
+    checkForUpdates();
   });
 
   app.on('window-all-closed', () => app.quit());

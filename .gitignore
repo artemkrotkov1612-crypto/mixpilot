@@ -19,3 +19,4 @@ Thumbs.db
 # Веса моделей: качаются при первом запуске, в репозитории им не место
 worker/checkpoints/
 models/
+stage/

@@ -49,7 +49,39 @@ export default function App() {
 
   useEffect(() => start(), [start]);
 
-  // Сплэш, пока движок стартует первый раз (обычно 1–3 секунды).
+  // Первый запуск: доустанавливаем Python и библиотеки (один раз, ~3 ГБ).
+  if (engine.kind === 'setup' || engine.kind === 'setupFailed') {
+    const failed = engine.kind === 'setupFailed';
+    return (
+      <div className="splash">
+        <div className="h-display">
+          Mix<span className="logo-accent">Pilot</span>
+        </div>
+        {failed ? (
+          <>
+            <div className="small" style={{ color: 'var(--err)', maxWidth: 460, textAlign: 'center' }}>
+              {engine.errorRu}
+            </div>
+            <div className="muted small">Закройте окно и запустите MixPilot снова</div>
+          </>
+        ) : (
+          <>
+            <div className="spinner" />
+            <div className="muted">{engine.textRu}</div>
+            <div className="progress-line" style={{ width: 320 }}>
+              <div style={{ width: `${Math.max(Math.round(engine.pct * 100), 3)}%` }} />
+            </div>
+            <div className="muted small" style={{ maxWidth: 420, textAlign: 'center' }}>
+              Это делается один раз при первом запуске: MixPilot скачивает и настраивает всё сам.
+              Нужен интернет и около 8 ГБ на диске.
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // Сплэш, пока движок стартует (обычно 1–3 секунды).
   if (engine.kind === 'starting') {
     return (
       <div className="splash">

@@ -1,0 +1,25 @@
+FFmpeg — сторонний компонент в составе MixPilot
+================================================
+
+MixPilot использует FFmpeg для чтения, записи и обработки аудио. FFmpeg
+запускается как отдельная программа (обмен идёт файлами и аргументами
+командной строки); код FFmpeg в MixPilot не встраивается.
+
+Сборка: ffmpeg 8.1.2-essentials_build, https://www.gyan.dev/ffmpeg/builds/
+Конфигурация включает --enable-gpl --enable-version3 --enable-librubberband.
+
+Лицензия
+--------
+Эта сборка распространяется на условиях GNU General Public License версии 3
+или новее (GPL v3+), поскольку собрана с --enable-gpl --enable-version3.
+Полный текст лицензии: https://www.gnu.org/licenses/gpl-3.0.html
+
+Исходный код
+------------
+Исходные тексты FFmpeg доступны по адресу https://ffmpeg.org/download.html
+и в репозитории https://git.ffmpeg.org/ffmpeg.git. Исходные тексты
+библиотеки Rubber Band — https://breakfastquay.com/rubberband/.
+
+Если вы распространяете MixPilot дальше, вы обязаны сопровождать его этим
+уведомлением и обеспечить доступность исходных текстов FFmpeg той версии,
+которая входит в состав дистрибутива.

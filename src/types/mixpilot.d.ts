@@ -10,10 +10,19 @@ export interface WorkerMeta {
   data_dir?: string;
 }
 
+/** Доустановка компонентов при первом запуске (electron/bootstrap.cjs). */
+export interface SetupState {
+  active: boolean;
+  pct: number;
+  text_ru: string;
+  error_ru: string | null;
+}
+
 export interface WorkerInfo {
   status: 'stopped' | 'starting' | 'online' | 'failed';
   port: number | null;
   meta: WorkerMeta | null;
+  setup?: SetupState;
 }
 
 declare global {

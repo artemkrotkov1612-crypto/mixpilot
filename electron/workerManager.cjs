@@ -43,13 +43,18 @@ function sleep(ms) {
 
 /**
  * Жизненный цикл Python-worker: запуск, health-poll, graceful stop.
- * В dev запускает через `uv run` (само синхронизирует окружение по uv.lock);
- * в упакованном приложении здесь появится встроенный runtime (M8).
+ * В установленном приложении — python из окружения, собранного первым
+ * запуском (bootstrap.cjs); в dev — `uv run`, который сам следит за uv.lock.
  */
 class WorkerManager {
-  /** @param {{workerDir: string, log?: (line: string) => void}} opts */
+  /**
+   * @param {{workerDir: string, pythonBin?: string, ffmpegDir?: string|null,
+   *          log?: (line: string) => void}} opts
+   */
   constructor(opts) {
     this.workerDir = opts.workerDir;
+    this.pythonBin = opts.pythonBin ?? null;
+    this.ffmpegDir = opts.ffmpegDir ?? null;
     this.log = opts.log ?? (() => {});
     this.child = null;
     this.port = null;
@@ -71,26 +76,38 @@ class WorkerManager {
     this.status = 'starting';
     this.port = await findFreePort();
 
-    const uv = resolveUv();
-    const args = [
-      'run', '--project', this.workerDir, '--',
+    const uvicornArgs = [
       'uvicorn', 'mixpilot_worker.main:app',
       '--host', '127.0.0.1',
       '--port', String(this.port),
       '--log-level', 'warning',
     ];
     const env = { ...process.env };
-    // В dev переиспользуем кеш и managed-Python воркспейса, если они есть
-    // (установка в %APPDATA%\uv на этой машине ломается на minor version link).
-    if (!env.UV_CACHE_DIR && fs.existsSync('C:\\TheIceBoys\\TOOLS\\uv-cache')) {
-      env.UV_CACHE_DIR = 'C:\\TheIceBoys\\TOOLS\\uv-cache';
-    }
-    if (!env.UV_PYTHON_INSTALL_DIR && fs.existsSync('C:\\TheIceBoys\\TOOLS\\uv-python')) {
-      env.UV_PYTHON_INSTALL_DIR = 'C:\\TheIceBoys\\TOOLS\\uv-python';
+    if (this.ffmpegDir) env.MIXPILOT_FFMPEG_DIR = this.ffmpegDir;
+
+    let command;
+    let args;
+    if (this.pythonBin && fs.existsSync(this.pythonBin)) {
+      // Установленное приложение: окружение уже собрано первым запуском,
+      // запускаем python напрямую — uv тут только замедлил бы старт.
+      command = this.pythonBin;
+      args = ['-m', ...uvicornArgs];
+    } else {
+      // Dev: `uv run` сам подтянет окружение по uv.lock.
+      command = resolveUv();
+      args = ['run', '--project', this.workerDir, '--', ...uvicornArgs];
+      // Кеш и managed-Python воркспейса, если они есть (установка в %APPDATA%\uv
+      // на этой машине ломается на minor version link).
+      if (!env.UV_CACHE_DIR && fs.existsSync('C:\\TheIceBoys\\TOOLS\\uv-cache')) {
+        env.UV_CACHE_DIR = 'C:\\TheIceBoys\\TOOLS\\uv-cache';
+      }
+      if (!env.UV_PYTHON_INSTALL_DIR && fs.existsSync('C:\\TheIceBoys\\TOOLS\\uv-python')) {
+        env.UV_PYTHON_INSTALL_DIR = 'C:\\TheIceBoys\\TOOLS\\uv-python';
+      }
     }
 
-    this.log(`spawn: ${uv} ${args.join(' ')}`);
-    this.child = spawn(uv, args, {
+    this.log(`spawn: ${command} ${args.join(' ')}`);
+    this.child = spawn(command, args, {
       cwd: this.workerDir,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],

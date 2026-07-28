@@ -7,6 +7,8 @@ export function Sidebar() {
 
   const status = {
     browser: { color: 'var(--warn)', text: 'браузерный режим' },
+    setup: { color: 'var(--warn)', text: 'ставим компоненты…' },
+    setupFailed: { color: 'var(--err)', text: 'движок не установился' },
     starting: { color: 'var(--warn)', text: 'движок запускается…' },
     online: { color: 'var(--ok)', text: engine.kind === 'online' ? `движок v${engine.meta.version}` : '' },
     offline: { color: 'var(--err)', text: 'движок не отвечает' },

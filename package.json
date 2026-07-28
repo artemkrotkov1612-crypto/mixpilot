@@ -14,9 +14,13 @@
     "ui:build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "smoke": "electron . --smoke-test"
+    "smoke": "electron . --smoke-test",
+    "prestage": "npm run ui:build",
+    "stage": "node scripts/stage-resources.cjs",
+    "dist": "npm run stage && electron-builder --win nsis"
   },
   "dependencies": {
+    "electron-updater": "^6.3.9",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "wavesurfer.js": "^7.12.10",
@@ -30,8 +34,41 @@
     "electron": "^37.0.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
+    "electron-builder": "^25.1.8",
     "vitest": "^2.1.8",
     "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "ru.theiceboys.mixpilot",
+    "productName": "MixPilot",
+    "copyright": "Copyright © 2026 artem",
+    "directories": { "output": "release", "buildResources": "build" },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      { "from": "stage/worker", "to": "worker" },
+      { "from": "stage/bin", "to": "bin" }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "artifactName": "MixPilot-${version}-setup.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "MixPilot",
+      "installerLanguages": ["ru_RU"],
+      "language": "1049"
+    },
+    "publish": [{ "provider": "github", "owner": "artem", "repo": "mixpilot" }]
   },
   "allowScripts": {
     "esbuild@0.25.12": true,

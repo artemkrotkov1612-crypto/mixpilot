@@ -5,6 +5,8 @@ import { useJobs } from './jobs';
 
 export type EngineState =
   | { kind: 'browser' } // vite в обычном браузере: без Electron-моста
+  | { kind: 'setup'; pct: number; textRu: string } // первый запуск: ставим компоненты
+  | { kind: 'setupFailed'; errorRu: string }
   | { kind: 'starting' }
   | { kind: 'online'; port: number; meta: WorkerMeta }
   | { kind: 'offline' };
@@ -29,6 +31,16 @@ export const useEngine = create<EngineStore>((set, get) => ({
     const poll = async () => {
       try {
         const info = await bridge.workerInfo();
+        // Доустановка компонентов главнее статуса worker'а: пока она идёт,
+        // движка ещё нет, и говорить «недоступен» было бы неправдой.
+        if (info.setup?.error_ru) {
+          set({ state: { kind: 'setupFailed', errorRu: info.setup.error_ru } });
+          return;
+        }
+        if (info.setup?.active) {
+          set({ state: { kind: 'setup', pct: info.setup.pct, textRu: info.setup.text_ru } });
+          return;
+        }
         if (info.status === 'online' && info.meta && info.port) {
           setWorkerPort(info.port);
           useJobs.getState().connect(info.port);
