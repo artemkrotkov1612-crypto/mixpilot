@@ -8,6 +8,8 @@ import { MergeMasterScreen } from './screens/MergeMasterScreen';
 import { RemixMasterScreen } from './screens/RemixMasterScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { VoiceCoverScreen } from './screens/VoiceCoverScreen';
+import { VoiceScreen } from './screens/VoiceScreen';
 import { useEngine } from './state/engine';
 import { useScreens } from './state/screens';
 
@@ -30,6 +32,10 @@ function CurrentScreen() {
       return <MergeMasterScreen key={screen.projectId ?? 'new'} projectId={screen.projectId} />;
     case 'results':
       return <ResultsScreen key={screen.generationId} generationId={screen.generationId} />;
+    case 'voice':
+      return <VoiceScreen />;
+    case 'voiceCover':
+      return <VoiceCoverScreen />;
     case 'settings':
       return <SettingsScreen />;
   }

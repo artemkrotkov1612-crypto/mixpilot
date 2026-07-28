@@ -67,6 +67,27 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   return data as T;
 }
 
+/** Отправка сырых байт (запись с микрофона) — тело не JSON. */
+export async function postBinary<T>(path: string, body: Blob): Promise<T> {
+  if (!baseUrl) throw new ApiError('E_WORKER_DOWN', 'AI-движок ещё запускается');
+  let response: Response;
+  try {
+    response = await fetch(baseUrl + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body,
+    });
+  } catch {
+    throw new ApiError('E_WORKER_DOWN', 'AI-движок не отвечает');
+  }
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const err = (data as { error?: { code?: string; message_ru?: string } })?.error;
+    throw new ApiError(err?.code ?? 'E_INTERNAL', err?.message_ru ?? 'Не удалось обработать запись');
+  }
+  return data as T;
+}
+
 /** URL аудиопотока для плеера (протокол media:// обслуживает Electron main). */
 export function mediaUrl(mediaPath: string): string {
   return `media://originals/${mediaPath}`;

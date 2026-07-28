@@ -34,7 +34,7 @@ export function HomeScreen() {
           <div className="title">Соединить песни</div>
           <div className="muted small">Mashup, плавные переходы, лучшие моменты нескольких треков</div>
         </button>
-        <button className="mode-card" onClick={() => toast(SOON)}>
+        <button className="mode-card" onClick={() => go({ name: 'voiceCover' })}>
           <span className="icon">🎤</span>
           <div className="title">Песня моим голосом</div>
           <div className="muted small">Каверы и собственные треки вашим голосом</div>

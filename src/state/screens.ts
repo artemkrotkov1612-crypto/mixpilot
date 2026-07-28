@@ -5,6 +5,8 @@ export type Screen =
   | { name: 'library' }
   | { name: 'remix'; projectId?: string; initialTrackId?: string }
   | { name: 'merge'; projectId?: string }
+  | { name: 'voice' }
+  | { name: 'voiceCover' }
   | { name: 'results'; generationId: string }
   | { name: 'settings' };
 

@@ -29,7 +29,10 @@ export function Sidebar() {
       >
         <span>🎵</span> Библиотека
       </button>
-      <button className="nav-item" onClick={() => toast(SOON)}>
+      <button
+        className={`nav-item ${screen.name === 'voice' ? 'active' : ''}`}
+        onClick={() => go({ name: 'voice' })}
+      >
         <span>🎤</span> Мой голос
       </button>
       <button className="nav-item" onClick={() => toast(SOON)}>

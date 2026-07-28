@@ -68,7 +68,7 @@ def create_generation(body: GenerateBody) -> dict:
         conn.execute("UPDATE projects SET status='processing', updated_at=? WHERE id=?",
                      (db.now_iso(), body.project_id))
 
-    kind = "merge" if project["mode"] == "merge" else "generate"
+    kind = {"merge": "merge", "voice_cover": "voice_cover"}.get(project["mode"], "generate")
     job = queue.enqueue(kind, {"generation_id": generation_id},
                         priority=queue.PRIORITY["generate"], gpu=True)
     return {"generation_id": generation_id, "job": job}

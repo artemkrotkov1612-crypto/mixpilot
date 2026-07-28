@@ -47,6 +47,24 @@ def probe(path: str) -> dict:
         raise AppError("E_DECODE", f"ffprobe вернул некорректный JSON: {exc}", status=422) from exc
 
 
+def decode_bytes_mono(data: bytes, sample_rate: int) -> bytes:
+    """Декодирует аудио из памяти (браузер пишет webm/opus) в PCM s16le mono."""
+    ffmpeg, _fp = config.resolve_ffmpeg()
+    if not ffmpeg:
+        raise AppError("E_INTERNAL", "ffmpeg недоступен", status=500)
+    cmd = [ffmpeg, "-v", "error", "-i", "pipe:0", "-map", "a:0",
+           "-ac", "1", "-ar", str(sample_rate), "-f", "s16le", "pipe:1"]
+    try:
+        proc = subprocess.run(cmd, input=data, capture_output=True,
+                              creationflags=_CREATE_NO_WINDOW, timeout=120)
+    except subprocess.TimeoutExpired as exc:
+        raise AppError("E_DECODE", "запись слишком длинная", status=422) from exc
+    if proc.returncode != 0 or not proc.stdout:
+        tail = proc.stderr.decode("utf-8", "replace").strip().splitlines()[-2:]
+        raise AppError("E_DECODE", f"не удалось прочитать запись: {' | '.join(tail)}", status=422)
+    return proc.stdout
+
+
 def decode_pcm_mono(path: str, sample_rate: int) -> bytes:
     """Декодирование в raw PCM s16le mono для расчёта пиков."""
     ffmpeg, _fp = config.resolve_ffmpeg()

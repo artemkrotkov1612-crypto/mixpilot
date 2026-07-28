@@ -136,6 +136,43 @@ export interface Generation {
   error_code: string | null;
 }
 
+export interface VoiceStep {
+  id: number;
+  kind: string;
+  title_ru: string;
+  instruction_ru: string;
+  prompts: string[];
+  seconds: number;
+}
+
+export interface ClipQuality {
+  level: 'great' | 'ok' | 'retake';
+  label_ru: string;
+  reason_ru: string;
+  accepted: boolean;
+  noise_db?: number;
+}
+
+export interface VoiceClip {
+  step: number;
+  idx: number;
+  duration_s: number;
+  accepted: number;
+  quality: ClipQuality | null;
+}
+
+export interface VoiceProfile {
+  id: string;
+  name: string;
+  status: 'recording' | 'ready' | 'empty';
+  minutes_recorded: number;
+  recorded_clips: number;
+  total_clips: number;
+  model_path: string | null;
+  quality: { reference_s: number; clips_used: number; enough: boolean } | null;
+  clips: VoiceClip[];
+}
+
 export interface CloudStatus {
   enabled: boolean;
   has_key: boolean;

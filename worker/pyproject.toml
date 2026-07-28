@@ -19,6 +19,15 @@ dependencies = [
     "numba>=0.60",  # njit для горячих DSP-циклов (транзитивно из librosa, фиксируем явно)
     # M4: понимание свободного текста (только текст, аудио не покидает компьютер)
     "anthropic>=0.40",
+    # M6: голос. seed-vc — конверсия без обучения (rvc-python отпал: требует
+    # fairseq==0.12.2, который не собирается на Python 3.11+, и numpy<=1.23.5).
+    "seed-vc>=0.4.3",
+    # torchvision должен быть ровно из пары к torch 2.5.1, иначе
+    # «operator torchvision::nms does not exist» ломает transformers.
+    "torchvision==0.20.1",
+    # Готовые бинарники вместо webrtcvad, который требует MSVC-компилятор
+    # (пользователь не должен ничего доустанавливать — ТЗ §2).
+    "webrtcvad-wheels>=2.0.14",
 ]
 
 [dependency-groups]
@@ -34,6 +43,8 @@ dev = [
 override-dependencies = [
     "torch==2.5.1",
     "torchaudio==2.5.1",
+    # Убираем исходный webrtcvad из графа: тот же модуль ставится колёсами выше.
+    "webrtcvad; python_version < '3'",
 ]
 
 # PyTorch с CUDA 12.4 (RTX 3070): дефолтный PyPI на Windows отдаёт CPU-сборку.
@@ -45,6 +56,7 @@ explicit = true
 [tool.uv.sources]
 torch = { index = "pytorch-cu124" }
 torchaudio = { index = "pytorch-cu124" }
+torchvision = { index = "pytorch-cu124" }
 # Стабильный 4.0.1 не содержит demucs.api (callback/отмена появились в 4.1.0a);
 # uv.lock пинит конкретный коммит. Для установщика (M8) соберём wheel заранее.
 demucs = { git = "https://github.com/adefossez/demucs" }
