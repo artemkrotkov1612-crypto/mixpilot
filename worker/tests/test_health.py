@@ -25,4 +25,7 @@ def test_meta() -> None:
     assert body["version"] == __version__
     assert body["pid"] > 0
     assert "python" in body
-    assert body["gpu"] is None
+    # Имя видеокарты появляется только после того, как что-то подтянуло torch:
+    # до первой тяжёлой задачи здесь None. Проверяем контракт поля, а не
+    # порядок импортов — иначе тест ломается от соседнего теста в прогоне.
+    assert body["gpu"] is None or isinstance(body["gpu"], str) and body["gpu"]
